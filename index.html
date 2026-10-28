@@ -9,79 +9,130 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-  html, body { margin: 0; height: 100%; background: #12261a; overflow: hidden; touch-action: none;
+  /* Ogród o zmierzchu: trawnik w pasy, drewniana grządka, ciepłe złoto słońca. Wynik u góry, grządka w środku, klocki i podpowiedź na dole. */
+  :root {
+    --bg: #12261a; --panel: rgba(10,26,16,.72); --ink: #f3f7ea; --muted: #b9d3a8; --dim: #7fa078;
+    --sun: #ffd35a; --sun-ink: #3a2600; --sun-deep: #b8861d; --petal: #ff8fa8; --leaf: #7dffa0; --cyan: #7fe9ff; --line: rgba(255,255,255,.14);
+    --display: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; --ui: system-ui, "Segoe UI", Roboto, sans-serif;
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; touch-action: none;
     user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
-    font-family: system-ui, "Segoe UI", sans-serif; color: #f3f7ea; }
-  canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
-  #top { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center;
-    padding: calc(12px + env(safe-area-inset-top)) 14px 0; pointer-events: none; }
+    font-family: var(--ui); color: var(--ink); }
+  #cv { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
+  button { font-family: var(--ui); color: var(--ink); cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+  #top { position: fixed; top: 0; left: 0; right: 0; display: grid; grid-template-columns: 44px 1fr 44px; align-items: start; gap: 8px;
+    padding: calc(10px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+    pointer-events: none; transition: opacity .3s; }
   #top > * { pointer-events: auto; }
-  #score { font-weight: 900; font-size: 34px; text-align: center; color: #fff; text-shadow: 0 2px 0 #0a170f; }
-  #best { font-size: 13px; text-align: center; color: #b9d3a8; }
-  .btn { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16); color: #f3f7ea;
-    border-radius: 16px; padding: 10px 14px; font: 600 15px system-ui, sans-serif; cursor: pointer; min-width: 44px; }
-  .btn:active { transform: scale(.95); }
-  .ov { position: fixed; inset: 0; display: none; place-items: center; background: rgba(8,20,12,.74);
-    backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
-  .ov.show { display: grid; }
-  .card { text-align: center; padding: 24px; max-width: 320px; }
-  .card h1 { margin: 0 0 6px; font-size: 42px; line-height: 1.05; color: #ffe27a; text-shadow: 0 3px 0 #6b4a12; }
-  .card h2 { margin: 0 0 8px; font-size: 30px; color: #ffe27a; }
-  .card p { color: #cfe2c2; margin: 8px 0 22px; line-height: 1.45; }
-  .big { background: #ffd35a; color: #3a2600; border: 0; border-radius: 22px; padding: 14px 40px;
-    font: 800 20px system-ui, sans-serif; box-shadow: 0 5px 0 #b8861d; cursor: pointer; }
-  .big:active { transform: translateY(3px); box-shadow: 0 2px 0 #b8861d; }
-  .num { font-size: 52px; font-weight: 900; color: #fff; margin: 4px 0; }
-  .sec { background: rgba(255,255,255,.1); color: #f3f7ea; border: 1px solid rgba(255,227,122,.5); border-radius: 18px;
-    padding: 12px 18px; font: 700 16px system-ui, sans-serif; cursor: pointer; margin-top: 12px; width: 100%; }
-  .sec small { display: block; font-weight: 500; font-size: 12px; color: #b9d3a8; margin-top: 2px; }
-  .sec:active { transform: scale(.97); }
-  .rank { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 10px 12px; margin-top: 16px; text-align: left; }
-  .rank .t { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; gap: 8px; }
-  .rank .t span:last-child { color: #b9d3a8; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .rank .s { font-size: 12px; color: #b9d3a8; margin-top: 2px; }
-  .bar { height: 6px; background: rgba(0,0,0,.35); border-radius: 3px; margin-top: 6px; overflow: hidden; }
-  .bar i { display: block; height: 100%; background: #ffd35a; border-radius: 3px; }
-  .card { padding-top: calc(20px + env(safe-area-inset-top)); padding-bottom: calc(20px + env(safe-area-inset-bottom)); width: 100%; box-sizing: border-box; }
-  .ov { overflow-y: auto; }
-  #mode { font-size: 11px; text-align: center; color: #ffd35a; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; min-height: 13px; }
-  .ov { scrollbar-width: none; }
+  .round { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-size: 18px; display: grid; place-items: center; }
+  .round:active { transform: scale(.94); }
+  .stats { display: flex; justify-content: center; gap: 5px; min-width: 0; }
+  .stat { flex: 1 1 0; min-width: 0; max-width: 84px; padding: 5px 4px 6px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); text-align: center; }
+  .stat small { display: block; font-size: 9px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat b { display: block; font: 800 20px/1.1 var(--display); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .stat.main b { color: #fff; font-size: 22px; }
+  #chap { grid-column: 1 / -1; text-align: center; font-size: 11px; letter-spacing: 1.2px; color: var(--sun); text-transform: uppercase; font-weight: 800; margin-top: -2px; min-height: 13px; }
+
+  #bottom { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center;
+    padding: 0 max(12px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); transition: opacity .3s; pointer-events: none; }
+  .pill { pointer-events: auto; position: relative; display: flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 20px;
+    border: 1px solid rgba(127,233,255,.45); background: var(--panel); font-size: 14px; font-weight: 700; }
+  .pill:active { transform: scale(.96); }
+  .pill[disabled] { opacity: .35; }
+  .pill .n { min-width: 20px; height: 20px; border-radius: 10px; background: var(--sun); color: var(--sun-ink); font-size: 12px; font-weight: 800; display: grid; place-items: center; padding: 0 5px; box-sizing: border-box; }
+
+  #toast { position: fixed; left: 50%; top: calc(118px + env(safe-area-inset-top)); transform: translate(-50%, -8px); opacity: 0;
+    padding: 9px 14px; border-radius: 14px; background: rgba(10,26,16,.94); border: 1px solid var(--line); font-size: 13.5px; font-weight: 600;
+    max-width: min(320px, calc(100vw - 32px)); text-align: center; transition: opacity .25s, transform .25s; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .ov { position: fixed; inset: 0; display: none; place-items: center; background: rgba(8,20,12,.8);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); overflow-y: auto; scrollbar-width: none; }
   .ov::-webkit-scrollbar { display: none; }
+  .ov.show { display: grid; }
+  .card { text-align: center; padding: calc(22px + env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    max-width: 360px; width: 100%; box-sizing: border-box; }
+  .eyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--leaf); font-weight: 800; }
+  .card h1 { margin: 4px 0 6px; font: 800 46px/1.02 var(--display); color: #ffe27a; text-shadow: 0 3px 0 #6b4a12; }
+  .card h2 { margin: 2px 0 6px; font: 800 30px/1.1 var(--display); color: #ffe27a; text-wrap: balance; }
+  .card p { color: #cfe2c2; margin: 8px 0 18px; line-height: 1.45; font-size: 15px; }
+  .big { background: var(--sun); color: var(--sun-ink); border: 0; border-radius: 22px; padding: 14px 40px;
+    font: 800 19px var(--ui); box-shadow: 0 5px 0 var(--sun-deep); }
+  .big:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--sun-deep); }
+  .num { font: 900 58px/1 var(--display); color: #fff; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+  .num.rec { color: #ffe27a; text-shadow: 0 0 22px rgba(255,211,90,.6); animation: pop .55s cubic-bezier(.2,1.6,.4,1) both; }
+  @keyframes pop { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .sec { background: rgba(255,255,255,.08); border: 1px solid rgba(255,227,122,.5); border-radius: 18px;
+    padding: 12px 18px; font: 700 16px var(--ui); margin-top: 12px; width: 100%; }
+  .sec small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .sec:active { transform: scale(.97); }
+  .link { background: none; border: 0; color: var(--muted); font-weight: 700; font-size: 14px; padding: 12px; }
+  .row { display: flex; justify-content: center; gap: 8px; margin: 12px 0 14px; }
+  .row .stat { flex: 0 0 82px; max-width: none; }
+  .rank { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 10px 12px; margin-top: 14px; text-align: left; }
+  .rank .t { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; gap: 8px; }
+  .rank .t span:last-child { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rank .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .bar { height: 6px; background: rgba(0,0,0,.35); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--sun); border-radius: 3px; }
+  @media (prefers-reduced-motion: reduce) { .num.rec { animation: none; } #toast { transition: none; } }
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <div id="top">
-  <button class="btn" id="snd" aria-label="Dźwięk">🔊</button>
-  <div><div id="mode"></div><div id="score">0</div><div id="best">rekord 0</div></div>
-  <button class="btn" id="menuBtn" aria-label="Menu">☰</button>
+  <button class="round" id="snd" aria-label="Dźwięk">🔊</button>
+  <div class="stats">
+    <div class="stat main"><small id="scoreL">Wynik</small><b id="score">0</b></div>
+    <div class="stat"><small id="bestL">Rekord</small><b id="best">0</b></div>
+    <div class="stat"><small id="linesL">Linie</small><b id="runLines">0</b></div>
+  </div>
+  <button class="round" id="menuBtn" aria-label="Menu">☰</button>
+  <div id="chap"></div>
 </div>
+<div id="bottom"><button class="pill" id="hintBtn">✦ <span id="hintL">Podpowiedź</span><span class="n" id="hintN">3</span></button></div>
+<div id="toast" role="status"></div>
 
 <div class="ov show" id="menu"><div class="card">
+  <div class="eyebrow" id="tagline">Kwiatowa łamigłówka</div>
   <h1 id="title">Ogród<br>Bloków</h1>
   <p id="howto">Przeciągaj klocki na grządki. Pełny rząd albo kolumna zakwita i znika. Złote kwiaty dają dodatkowe punkty. Gra trwa, dopóki masz gdzie sadzić!</p>
+  <div class="row">
+    <div class="stat"><small id="mBestL">Rekord</small><b id="mBest">0</b></div>
+    <div class="stat"><small id="mLinesL">Linie</small><b id="mLines">0</b></div>
+    <div class="stat"><small id="mStreakL">Seria dni</small><b id="mStreak">0</b></div>
+  </div>
   <button class="big" id="play">Graj</button>
   <button class="sec" id="daily">🌼 <span id="dailyL">Wyzwanie dnia</span><small id="dailyInfo"></small></button>
   <div class="rank" id="rank"></div>
 </div></div>
 
 <div class="ov" id="over"><div class="card">
+  <div class="eyebrow" id="overEyebrow"></div>
   <h2 id="overT">Brak miejsca!</h2>
   <div class="num" id="final">0</div>
+  <div class="row">
+    <div class="stat"><small id="oLinesL">Linie</small><b id="oLines">0</b></div>
+    <div class="stat"><small id="oComboL">Najlepsza seria</small><b id="oCombo">0</b></div>
+    <div class="stat"><small id="oBestL">Rekord</small><b id="oBest">0</b></div>
+  </div>
   <p id="overInfo"></p>
   <div class="rank" id="overRank"></div>
   <p></p>
   <button class="big" id="again">Jeszcze raz</button>
-  <button class="sec" id="toMenu">Menu</button>
+  <div><button class="link" id="toMenu">☰ Menu</button></div>
 </div></div>
 
 <script>
 'use strict';
-const N = 8;
+const N = 8, HINTS = 3;
 // język: polski dla telefonów ustawionych na polski, dla wszystkich innych angielski
 const LANG = (navigator.languages && navigator.languages[0] || navigator.language || 'en').toLowerCase().startsWith('pl') ? 'pl' : 'en';
 const tr = (pl, en) => LANG === 'pl' ? pl : en;
 document.documentElement.lang = LANG;
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $ = id => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');
 const store = {
@@ -90,21 +141,22 @@ const store = {
 };
 let best = store.get('ob_best', 0), muted = store.get('ob_muted', false);
 let lines = store.get('ob_lines', 0), streak = store.get('ob_streak', { last: '', n: 0 });
-let mode = 'classic', rand = Math.random, runLines = 0;
+let mode = 'classic', rand = Math.random, runLines = 0, maxCombo = 0, hintLeft = HINTS, hint = null;
 
 // wyzwanie dnia: ten sam ciąg klocków dla wszystkich graczy danego dnia
 function rng(seed) { return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
 const dayKey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const dailyBest = () => store.get('ob_daily_' + dayKey(), 0);
 function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return dayKey(d); }
+const liveStreak = () => streak.last === dayKey() || streak.last === yesterdayKey() ? streak.n : 0;
 
 // rangi ogrodnika za łączną liczbę zebranych rzędów i kolumn
 const RANKS = [[0, tr('Nowicjusz', 'Beginner')], [25, tr('Sadzonka', 'Seedling')], [75, tr('Pączek', 'Bud')], [150, tr('Kwiatek', 'Blossom')],
   [300, tr('Ogrodnik', 'Gardener')], [500, tr('Sadownik', 'Orchardist')], [800, tr('Botanik', 'Botanist')], [1200, tr('Mistrz ogrodu', 'Garden Master')],
   [1800, tr('Strażnik róż', 'Rose Keeper')], [2500, tr('Legenda ogrodu', 'Garden Legend')]];
+const rankOf = n => { let i = 0; while (i + 1 < RANKS.length && n >= RANKS[i + 1][0]) i++; return i; };
 function rankHtml() {
-  let i = 0; while (i + 1 < RANKS.length && lines >= RANKS[i + 1][0]) i++;
-  const next = RANKS[i + 1];
+  const i = rankOf(lines), next = RANKS[i + 1];
   const pct = next ? Math.round((lines - RANKS[i][0]) / (next[0] - RANKS[i][0]) * 100) : 100;
   return `<div class="t"><span>🌱 ${RANKS[i][1]}</span><span>${tr('ranga', 'rank')} ${i + 1} / ${RANKS.length}</span></div>
     <div class="s">${next ? tr(`zebrane linie: ${lines} · do rangi „${next[1]}” brakuje ${next[0] - lines}`, `lines cleared: ${lines} · ${next[0] - lines} more to “${next[1]}”`)
@@ -153,43 +205,57 @@ const S = {
   pick: () => tone(440, .07, 'triangle', .06),
   place: () => { tone(196, .1, 'sine', .14); tone(392, .06, 'triangle', .04); },
   bad: () => tone(160, .12, 'square', .04),
+  hint: () => { tone(1319, .18, 'sine', .06); tone(1760, .25, 'sine', .05, .08); },
   clear: (n, combo) => { const base = 523 * Math.pow(1.06, Math.min(combo, 8)); for (let i = 0; i < 3 + n; i++) tone(base * [1, 1.25, 1.5, 2, 2.5, 3][i % 6], .3, 'triangle', .08, i * .06); },
   over: () => [392, 330, 262, 196].forEach((f, i) => tone(f, .35, 'triangle', .08, i * .14)),
+  record: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .4, 'triangle', .08, i * .09)),
 };
 const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
 
 // --- stan ---
-let grid, tray, score, combo, state = 'menu', drag = null, pops = [], petals = [], floats = [], shakeT = 0;
+let grid, tray = [], score, combo, state = 'menu', drag = null, pops = [], petals = [], floats = [], planted = [], shakeT = 0, newRecord = false;
 function newGame(m = mode) {
   mode = m;
   const d = new Date();
   rand = mode === 'daily' ? rng(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()) : Math.random;
   grid = Array.from({ length: N }, () => Array(N).fill(-1));
-  score = 0; combo = 0; runLines = 0; pops = []; petals = []; floats = [];
+  score = 0; combo = 0; runLines = 0; maxCombo = 0; hintLeft = HINTS; hint = null; newRecord = false;
+  pops = []; petals = []; floats = []; planted = [];
   $('menu').classList.remove('show'); $('over').classList.remove('show');
   refill(); state = 'play'; hud();
 }
 function hud() {
-  $('score').textContent = score;
-  $('mode').textContent = mode === 'daily' ? tr('Wyzwanie dnia', 'Daily challenge') : '';
-  $('best').textContent = mode === 'daily' ? tr('dziś najlepiej ', 'today’s best ') + Math.max(dailyBest(), score) : tr('rekord ', 'best ') + best;
+  $('score').textContent = score || 0;
+  $('chap').textContent = mode === 'daily' ? tr('Wyzwanie dnia', 'Daily challenge') + ' · ' + dayKey() : '';
+  $('bestL').textContent = mode === 'daily' ? tr('Dziś', 'Today') : tr('Rekord', 'Best');
+  $('best').textContent = mode === 'daily' ? Math.max(dailyBest(), score || 0) : best;
+  $('runLines').textContent = runLines;
+  $('hintN').textContent = hintLeft; $('hintBtn').disabled = !hintLeft || state !== 'play';
   $('snd').textContent = muted ? '🔇' : '🔊';
+  const inGame = state === 'play' || state === 'ending';
+  $('top').style.opacity = $('bottom').style.opacity = inGame ? 1 : 0;
+}
+let toastT = 0;
+function toast(msg) {
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2000);
 }
 function days(n) { return n === 1 ? tr('dzień', 'day') : tr('dni', 'days'); }
 function showMenu() {
   state = 'menu';
-  const db = dailyBest(), s = streak.last === dayKey() || streak.last === yesterdayKey() ? streak.n : 0;
+  const db = dailyBest(), s = liveStreak();
   $('dailyInfo').textContent = (db ? tr(`dzisiejszy wynik: ${db}`, `today’s score: ${db}`) : tr('te same klocki dla wszystkich, nowe codziennie', 'same blocks for everyone, new every day'))
     + (s ? ` · ${tr('seria', 'streak')}: ${s} ${days(s)}` : '');
+  $('mBest').textContent = best; $('mLines').textContent = lines; $('mStreak').textContent = s;
   $('rank').innerHTML = rankHtml();
-  $('over').classList.remove('show'); $('menu').classList.add('show');
+  $('over').classList.remove('show'); $('menu').classList.add('show'); hud();
 }
-function fits(cells, gx, gy) {
-  for (const [x, y] of cells) { const X = gx + x, Y = gy + y; if (X < 0 || Y < 0 || X >= N || Y >= N || grid[Y][X] !== -1) return false; }
+function fits(cells, gx, gy, g = grid) {
+  for (const [x, y] of cells) { const X = gx + x, Y = gy + y; if (X < 0 || Y < 0 || X >= N || Y >= N || g[Y][X] !== -1) return false; }
   return true;
 }
-function canPlaceAnywhere(cells) {
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (fits(cells, x, y)) return true;
+function canPlaceAnywhere(cells, g = grid) {
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (fits(cells, x, y, g)) return true;
   return false;
 }
 function refill() {
@@ -203,19 +269,83 @@ function refill() {
     if (mode === 'daily' || tray.some(p => canPlaceAnywhere(p.cells))) break;
   }
 }
+function fullLines(g) {
+  const rows = [], cols = [];
+  for (let i = 0; i < N; i++) {
+    if (g[i].every(v => v >= 0)) rows.push(i);
+    if (g.every(r => r[i] >= 0)) cols.push(i);
+  }
+  return { rows, cols };
+}
+
+// --- podpowiedź: ocenia każde możliwe miejsce dla każdego klocka z tacki ---
+function bestMove() {
+  let top = null;
+  tray.forEach((p, i) => {
+    if (p.used) return;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      if (!fits(p.cells, x, y)) continue;
+      const g = grid.map(r => r.slice());
+      for (const [cx, cy] of p.cells) g[y + cy][x + cx] = p.col;
+      const { rows, cols } = fullLines(g), n = rows.length + cols.length;
+      for (const r of rows) for (let k = 0; k < N; k++) g[r][k] = -1;
+      for (const c of cols) for (let k = 0; k < N; k++) g[k][c] = -1;
+      let contact = 0, holes = 0;
+      for (const [cx, cy] of p.cells) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const X = x + cx + dx, Y = y + cy + dy;
+        if (X < 0 || Y < 0 || X >= N || Y >= N || grid[Y][X] >= 0) contact++;
+      }
+      for (let yy = 0; yy < N; yy++) for (let xx = 0; xx < N; xx++) {
+        if (g[yy][xx] >= 0) continue;
+        if ([[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dy]) => { const X = xx + dx, Y = yy + dy; return X < 0 || Y < 0 || X >= N || Y >= N || g[Y][X] >= 0; })) holes++;
+      }
+      const others = tray.filter((q, j) => j !== i && !q.used), ok = others.filter(q => canPlaceAnywhere(q.cells, g)).length;
+      const val = n * 120 + ok * 40 - holes * 18 + contact * 3 + (p.col === GOLD && n ? 30 : 0);
+      if (!top || val > top.val) top = { i, x, y, val };
+    }
+  });
+  return top;
+}
+function useHint() {
+  if (!hintLeft || state !== 'play') return;
+  audio();
+  const m = bestMove();
+  if (!m) { toast(tr('Żaden klocek już się nie zmieści.', 'None of the blocks fit any more.')); return; }
+  hintLeft--; hint = { ...m, t0: performance.now() }; S.hint(); hud();
+}
 
 // --- układ ---
-let W, H, DPR, cell, bx, by, trayY, slotW;
+let W, H, DPR, cell, bx, by, trayY, slotW, bgCanvas;
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2.5);
   W = innerWidth; H = innerHeight;
   cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  const top = 90, trayH = Math.min(150, H * .2);
-  cell = Math.floor(Math.min((W - 28) / N, (H - top - trayH - 30) / N));
-  bx = (W - cell * N) / 2; by = top + Math.max(0, (H - top - trayH - 30 - cell * N) / 2);
-  trayY = by + cell * N + 20 + trayH / 2; slotW = W / 3;
+  const top = 112, trayH = Math.min(140, H * .18), bottom = 62;
+  cell = Math.floor(Math.min((W - 28) / N, (H - top - trayH - bottom - 20) / N));
+  bx = (W - cell * N) / 2; by = top + Math.max(0, (H - top - trayH - bottom - 20 - cell * N) / 2);
+  trayY = by + cell * N + 18 + trayH / 2; slotW = W / 3;
+  buildBg();
 }
 addEventListener('resize', resize);
+
+// tło: trawnik w pasy, światło zachodzącego słońca, liście w rogach
+function buildBg() {
+  bgCanvas = document.createElement('canvas'); bgCanvas.width = W * DPR; bgCanvas.height = H * DPR;
+  const b = bgCanvas.getContext('2d'); b.setTransform(DPR, 0, 0, DPR, 0, 0);
+  b.fillStyle = '#163222'; b.fillRect(0, 0, W, H);
+  b.fillStyle = '#1a3a27'; for (let y = 0; y < H; y += 40) b.fillRect(0, y, W, 20);
+  const sun = b.createRadialGradient(W * .85, -20, 10, W * .85, -20, H * .7);
+  sun.addColorStop(0, 'rgba(255,214,120,.22)'); sun.addColorStop(1, 'rgba(255,214,120,0)');
+  b.fillStyle = sun; b.fillRect(0, 0, W, H);
+  const leaf = (x, y, r, a, col) => { b.save(); b.translate(x, y); b.rotate(a); b.fillStyle = col; b.beginPath(); b.ellipse(0, 0, r, r * .42, 0, 0, 7); b.fill();
+    b.strokeStyle = 'rgba(0,0,0,.18)'; b.lineWidth = 1.5; b.beginPath(); b.moveTo(-r, 0); b.lineTo(r, 0); b.stroke(); b.restore(); };
+  const r = rng(7);
+  for (let i = 0; i < 9; i++) leaf(-10 + r() * 50, H * (.15 + r() * .75), 22 + r() * 18, r() * 6, i % 2 ? '#1f4a2e' : '#245636');
+  for (let i = 0; i < 9; i++) leaf(W + 10 - r() * 50, H * (.15 + r() * .75), 22 + r() * 18, r() * 6, i % 2 ? '#1f4a2e' : '#245636');
+  const vig = b.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .4, W / 2, H / 2, Math.max(W, H) * .8);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.3)'); b.fillStyle = vig; b.fillRect(0, 0, W, H);
+}
+const pollen = Array.from({ length: REDUCED ? 8 : 30 }, () => ({ x: Math.random(), y: Math.random(), s: .3 + Math.random() * .7, p: Math.random() * 7 }));
 
 // --- rysowanie ---
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
@@ -227,6 +357,7 @@ function block(x, y, s, col, alpha = 1, scale = 1) {
   const gold = col === GOLD;
   ctx.fillStyle = gold ? '#b8860b' : '#2f7a3d'; rr(cx - w / 2, cy - w / 2, w, w, w * .22); ctx.fill();
   ctx.fillStyle = gold ? '#e6b422' : '#3d9a4c'; rr(cx - w / 2, cy - w / 2, w, w * .86, w * .22); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.12)'; rr(cx - w / 2 + w * .08, cy - w / 2 + w * .06, w * .84, w * .16, w * .08); ctx.fill();
   if (gold) {
     const k = (performance.now() / 1400 + (x + y) / 400) % 1;
     ctx.save(); rr(cx - w / 2, cy - w / 2, w, w, w * .22); ctx.clip();
@@ -242,18 +373,24 @@ function block(x, y, s, col, alpha = 1, scale = 1) {
   ctx.fillStyle = mid; ctx.beginPath(); ctx.arc(cx, cy - w * .05, pr * .62, 0, 7); ctx.fill();
   ctx.globalAlpha = 1;
 }
+function outline(x, y, s, a) { ctx.globalAlpha = a; ctx.strokeStyle = '#7fe9ff'; ctx.lineWidth = 2.5; rr(x + 3, y + 3, s - 6, s - 6, s * .2); ctx.stroke(); ctx.globalAlpha = 1; }
 function pieceBox(p) { const w = Math.max(...p.cells.map(c => c[0])) + 1, h = Math.max(...p.cells.map(c => c[1])) + 1; return { w, h }; }
 
 function draw(t) {
-  // tło: trawnik w paski
-  ctx.fillStyle = '#163222'; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#1a3a27';
-  for (let y = 0; y < H; y += 40) ctx.fillRect(0, y, W, 20);
-  if (state === 'menu') return;
+  ctx.drawImage(bgCanvas, 0, 0, W, H);
+  for (const q of pollen) {
+    q.y -= .00005 * q.s * 16; q.x += Math.sin(t / 1800 + q.p) * .0001; if (q.y < -.02) { q.y = 1.02; q.x = Math.random(); }
+    ctx.globalAlpha = (.18 + .2 * Math.sin(t / 800 + q.p * 3)) * q.s; ctx.fillStyle = '#fff3b0';
+    ctx.beginPath(); ctx.arc(q.x * W, q.y * H, 1 + q.s * 1.6, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  if (state === 'menu' || !grid) return;
   let ox = 0;
   if (shakeT) { const k = (t - shakeT) / 260; if (k > 1) shakeT = 0; else ox = Math.sin(k * 40) * 5 * (1 - k); }
-  // plansza (grządka)
+  // plansza (drewniana grządka)
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; rr(bx - 8 + ox + 3, by - 8 + 6, cell * N + 16, cell * N + 16, 16); ctx.fill();
   ctx.fillStyle = '#4a2f1d'; rr(bx - 8 + ox, by - 8, cell * N + 16, cell * N + 16, 16); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,220,170,.12)'; ctx.lineWidth = 1.5; ctx.stroke();
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     ctx.fillStyle = (x + y) % 2 ? '#5c3b25' : '#63412a';
     rr(bx + x * cell + 2 + ox, by + y * cell + 2, cell - 4, cell - 4, cell * .18); ctx.fill();
@@ -272,8 +409,18 @@ function draw(t) {
       for (const c of cols) { rr(bx + c * cell + ox, by, cell, cell * N, 8); ctx.fill(); }
     }
   }
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (grid[y][x] >= 0) block(bx + x * cell + ox, by + y * cell, cell, grid[y][x]);
+  const now = performance.now();
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (grid[y][x] >= 0) {
+    const pl = planted.find(q => q.x === x && q.y === y), k = pl ? Math.min(1, (now - pl.t0) / 260) : 1;
+    block(bx + x * cell + ox, by + y * cell, cell, grid[y][x], 1, 1 + (1 - k) * .25 * Math.sin(k * Math.PI));
+  }
+  planted = planted.filter(q => now - q.t0 < 300);
   if (ghost) for (const [x, y] of drag.p.cells) block(bx + (ghost.x + x) * cell, by + (ghost.y + y) * cell, cell, drag.p.col, .35);
+  // podpowiedź: pulsujący zarys miejsca na planszy
+  if (hint && state === 'play' && !drag) {
+    const a = .5 + .5 * Math.sin((t - hint.t0) / 180), p = tray[hint.i];
+    if (p && !p.used) for (const [x, y] of p.cells) { block(bx + (hint.x + x) * cell, by + (hint.y + y) * cell, cell, p.col, .28); outline(bx + (hint.x + x) * cell, by + (hint.y + y) * cell, cell, a); }
+  }
   // znikające kwiaty
   for (let i = pops.length - 1; i >= 0; i--) {
     const p = pops[i], k = (t - p.t0) / 320;
@@ -283,10 +430,12 @@ function draw(t) {
   }
   // tacka
   const ts = Math.min(cell * .55, 26);
+  ctx.fillStyle = 'rgba(10,26,16,.4)'; rr(10, trayY - 62, W - 20, 124, 20); ctx.fill();
   tray.forEach((p, i) => {
     if (p.used || (drag && drag.i === i)) return;
     const { w, h } = pieceBox(p), cx = slotW * i + slotW / 2;
-    const fit = canPlaceAnywhere(p.cells);
+    const fit = canPlaceAnywhere(p.cells), hl = hint && hint.i === i && !drag;
+    if (hl) { const a = .5 + .5 * Math.sin((t - hint.t0) / 180); ctx.globalAlpha = .25 + a * .3; ctx.fillStyle = '#7fe9ff'; rr(cx - slotW * .42, trayY - 54, slotW * .84, 108, 16); ctx.fill(); ctx.globalAlpha = 1; }
     for (const [x, y] of p.cells) block(cx - w * ts / 2 + x * ts, trayY - h * ts / 2 + y * ts, ts, p.col, fit ? 1 : .35);
   });
   // przeciągany klocek
@@ -303,19 +452,12 @@ function draw(t) {
   for (let i = floats.length - 1; i >= 0; i--) {
     const f = floats[i], k = (t - f.t0) / 1000;
     if (k >= 1) { floats.splice(i, 1); continue; }
-    ctx.globalAlpha = 1 - k; ctx.fillStyle = f.c; ctx.font = `900 ${f.size}px system-ui, sans-serif`; ctx.textAlign = 'center';
+    if (k < 0) continue;
+    const sc = k < .15 ? .6 + k / .15 * .4 : 1;
+    ctx.globalAlpha = 1 - k; ctx.fillStyle = f.c; ctx.font = `900 ${f.size * sc}px Trebuchet MS, system-ui, sans-serif`; ctx.textAlign = 'center';
     ctx.lineWidth = 5; ctx.strokeStyle = '#0d1f14'; ctx.strokeText(f.text, f.x, f.y - k * 40); ctx.fillText(f.text, f.x, f.y - k * 40);
   }
   ctx.globalAlpha = 1;
-}
-
-function fullLines(g) {
-  const rows = [], cols = [];
-  for (let i = 0; i < N; i++) {
-    if (g[i].every(v => v >= 0)) rows.push(i);
-    if (g.every(r => r[i] >= 0)) cols.push(i);
-  }
-  return { rows, cols };
 }
 
 // --- przeciąganie ---
@@ -332,7 +474,7 @@ function setDragPos(px, py) {
 cv.addEventListener('pointerdown', e => {
   if (state !== 'play') return;
   audio();
-  if (e.clientY < trayY - 90) return;
+  if (e.clientY < trayY - 70) return;
   const i = Math.min(2, Math.floor(e.clientX / slotW)), p = tray[i];
   if (!p || p.used) return;
   drag = { i, p, x: 0, y: 0 }; setDragPos(e.clientX, e.clientY); S.pick();
@@ -343,19 +485,20 @@ const end = () => {
   if (!drag) return;
   const g = dropCell(), p = drag.p;
   if (g && fits(p.cells, g.x, g.y)) place(p, g.x, g.y);
-  else if (g && g.x > -3 && g.y > -3 && g.x < N && g.y < N) { S.bad(); shakeT = performance.now(); }
+  else if (g && g.x > -3 && g.y > -3 && g.x < N && g.y < N) { S.bad(); shakeT = performance.now(); toast(tr('Tu się nie zmieści.', 'It doesn’t fit there.')); }
   drag = null;
 };
 cv.addEventListener('pointerup', end);
 cv.addEventListener('pointercancel', () => drag = null);
 
 function place(p, gx, gy) {
-  for (const [x, y] of p.cells) grid[gy + y][gx + x] = p.col;
-  p.used = true; score += p.cells.length; S.place(); buzz(10);
+  const t0 = performance.now();
+  for (const [x, y] of p.cells) { grid[gy + y][gx + x] = p.col; planted.push({ x: gx + x, y: gy + y, t0 }); }
+  p.used = true; hint = null; score += p.cells.length; S.place(); buzz(10);
   const { rows, cols } = fullLines(grid), n = rows.length + cols.length;
   if (n) {
-    combo++;
-    const t0 = performance.now(), seen = new Set();
+    combo++; maxCombo = Math.max(maxCombo, combo);
+    const seen = new Set();
     const add = (x, y, d) => {
       const k = x + ',' + y; if (seen.has(k)) return; seen.add(k);
       pops.push({ x, y, col: grid[y][x], t0: t0 + d * 35 });
@@ -367,7 +510,9 @@ function place(p, gx, gy) {
     let golds = 0;
     for (const k of seen) { const [x, y] = k.split(',').map(Number); if (grid[y][x] === GOLD) golds++; grid[y][x] = -1; }
     const gain = 10 * n * n + (combo - 1) * 10 * n + golds * GOLD_BONUS;
-    score += gain; runLines += n; lines += n; store.set('ob_lines', lines);
+    score += gain; runLines += n;
+    const rankBefore = rankOf(lines); lines += n; store.set('ob_lines', lines);
+    if (rankOf(lines) > rankBefore) floats.push({ text: tr('Nowa ranga: ', 'New rank: ') + RANKS[rankOf(lines)][1], x: W / 2, y: by + cell * 1.5, c: '#7dffa0', size: 24, t0: t0 + 450 });
     if (golds) { floats.push({ text: tr('Złote kwiaty', 'Golden flowers') + ` +${golds * GOLD_BONUS}`, x: W / 2, y: by + cell * N / 2 - 44, c: '#ffd35a', size: 24, t0: t0 + 60 }); tone(1568, .4, 'sine', .07, .15); }
     const cx = bx + (gx + 1) * cell, cy = by + gy * cell;
     floats.push({ text: '+' + gain, x: cx, y: cy, c: '#ffe27a', size: 30, t0 });
@@ -377,27 +522,38 @@ function place(p, gx, gy) {
     S.clear(n, combo); buzz([20, 30, 20]);
   } else combo = 0;
   if (tray.every(q => q.used)) refill();
-  if (mode === 'classic' && score > best) { best = score; store.set('ob_best', best); }
+  if (mode === 'classic' && score > best) {
+    if (!newRecord && best > 0) floats.push({ text: tr('Nowy rekord!', 'New best!'), x: W / 2, y: by - 4, c: '#ffe27a', size: 22, t0: t0 + 200 });
+    newRecord = true; best = score; store.set('ob_best', best);
+  }
   hud();
-  if (!tray.some(q => !q.used && canPlaceAnywhere(q.cells))) setTimeout(gameOver, 700);
+  if (!tray.some(q => !q.used && canPlaceAnywhere(q.cells))) { state = 'ending'; setTimeout(gameOver, 800); }
 }
 function gameOver() {
-  if (state !== 'play') return;
-  state = 'over'; S.over(); buzz(80);
-  $('final').textContent = score;
+  if (state !== 'ending' && state !== 'play') return;
+  state = 'over';
   const ln = LANG !== 'pl' ? `${runLines} ${runLines === 1 ? 'line' : 'lines'}` : `${runLines} ${runLines === 1 ? 'linia' : runLines % 10 >= 2 && runLines % 10 <= 4 && (runLines % 100 < 12 || runLines % 100 > 14) ? 'linie' : 'linii'}`;
+  let rec = false;
   if (mode === 'daily') {
     const today = dayKey(), prev = dailyBest();
     if (streak.last !== today) { streak = { last: today, n: streak.last === yesterdayKey() ? streak.n + 1 : 1 }; store.set('ob_streak', streak); }
-    if (score > prev) store.set('ob_daily_' + today, score);
-    $('overT').textContent = tr('Wyzwanie dnia', 'Daily challenge');
-    $('overInfo').textContent = `${ln} · ${score > prev ? (prev ? tr('lepiej niż wcześniej dziś! 🌼', 'your best today! 🌼') : tr('pierwszy wynik dnia 🌼', 'first score today 🌼')) : tr('dziś najlepiej: ', 'today’s best: ') + prev} · ${tr('seria', 'streak')} ${streak.n} ${days(streak.n)}`;
+    rec = score > prev; if (rec) store.set('ob_daily_' + today, score);
+    $('overEyebrow').textContent = tr('Wyzwanie dnia · seria ', 'Daily challenge · streak ') + streak.n + ' ' + days(streak.n);
+    $('overT').textContent = rec ? (prev ? tr('Lepiej niż wcześniej!', 'Your best today!') : tr('Pierwszy wynik dnia!', 'First score today!')) : tr('Brak miejsca!', 'No more room!');
+    $('oBestL').textContent = tr('Dziś', 'Today'); $('oBest').textContent = Math.max(prev, score);
+    $('overInfo').textContent = tr('Jutro czekają nowe klocki. Wróć, żeby nie przerwać serii!', 'New blocks tomorrow. Come back to keep your streak!');
   } else {
-    $('overT').textContent = tr('Brak miejsca!', 'No more room!');
-    $('overInfo').textContent = `${ln} · ` + (score >= best && score > 0 ? tr('nowy rekord! 🌸', 'new best! 🌸') : tr('rekord: ', 'best: ') + best);
+    rec = newRecord && score > 0;
+    $('overEyebrow').textContent = rec ? tr('Nowy rekord!', 'New best!') : tr('Klasyczna gra', 'Classic game');
+    $('overT').textContent = rec ? tr('Najlepszy ogród!', 'Your best garden!') : tr('Brak miejsca!', 'No more room!');
+    $('oBestL').textContent = tr('Rekord', 'Best'); $('oBest').textContent = best;
+    $('overInfo').textContent = `${ln} · ` + (rec ? tr('pobity rekord! 🌸', 'a new record! 🌸') : tr(`do rekordu zabrakło ${best - score}`, `${best - score} short of your best`));
   }
+  rec ? S.record() : S.over(); buzz(rec ? [20, 40, 20, 40, 60] : 80);
+  $('final').textContent = score; $('final').classList.toggle('rec', rec);
+  $('oLines').textContent = runLines; $('oCombo').textContent = maxCombo ? 'x' + maxCombo : '–';
   $('overRank').innerHTML = rankHtml();
-  $('over').classList.add('show');
+  $('over').classList.add('show'); hud();
 }
 
 $('play').onclick = () => { audio(); newGame('classic'); };
@@ -405,20 +561,26 @@ $('daily').onclick = () => { audio(); newGame('daily'); };
 $('again').onclick = () => newGame();
 $('toMenu').onclick = showMenu;
 $('menuBtn').onclick = () => { if (state === 'play') showMenu(); };
+$('hintBtn').onclick = useHint;
 $('snd').onclick = () => { muted = !muted; store.set('ob_muted', muted); hud(); };
 
-function loop(t) { draw(t); requestAnimationFrame(loop); }
 function applyTexts() {
   document.title = tr('Ogród Bloków', 'Block Garden');
   $('title').innerHTML = tr('Ogród<br>Bloków', 'Block<br>Garden');
+  $('tagline').textContent = tr('Kwiatowa łamigłówka', 'A flower block puzzle');
   $('howto').textContent = tr('Przeciągaj klocki na grządki. Pełny rząd albo kolumna zakwita i znika. Złote kwiaty dają dodatkowe punkty. Gra trwa, dopóki masz gdzie sadzić!',
     'Drag blocks onto the garden bed. A full row or column blooms and clears. Golden flowers give bonus points. The game lasts as long as you have room to plant!');
-  $('play').textContent = tr('Graj', 'Play'); $('dailyL').textContent = tr('Wyzwanie dnia', 'Daily challenge');
-  $('again').textContent = tr('Jeszcze raz', 'Play again'); $('toMenu').textContent = 'Menu';
+  $('scoreL').textContent = tr('Wynik', 'Score'); $('linesL').textContent = tr('Linie', 'Lines');
+  $('mBestL').textContent = tr('Rekord', 'Best'); $('mLinesL').textContent = tr('Linie', 'Lines'); $('mStreakL').textContent = tr('Seria dni', 'Day streak');
+  $('oLinesL').textContent = tr('Linie', 'Lines'); $('oComboL').textContent = tr('Najlepsza seria', 'Best combo');
+  $('play').textContent = tr('Graj', 'Play'); $('dailyL').textContent = tr('Wyzwanie dnia', 'Daily challenge'); $('hintL').textContent = tr('Podpowiedź', 'Hint');
+  $('again').textContent = tr('Jeszcze raz', 'Play again');
   $('snd').setAttribute('aria-label', tr('Dźwięk', 'Sound'));
 }
 applyTexts();
-resize(); hud(); tray = []; showMenu(); requestAnimationFrame(loop);
+
+function loop(t) { draw(t); requestAnimationFrame(loop); }
+resize(); showMenu(); requestAnimationFrame(loop);
 document.addEventListener('visibilitychange', () => { if (document.hidden && actx) actx.suspend(); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
