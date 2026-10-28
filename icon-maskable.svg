@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512"><rect width="512" height="512" fill="#1a3a27"/><rect y="0" width="512" height="64" fill="#163222"/><rect y="128" width="512" height="64" fill="#163222"/><rect y="256" width="512" height="64" fill="#163222"/><rect y="384" width="512" height="64" fill="#163222"/>
+<g id="art" transform="translate(256 256) scale(0.74) translate(-256 -256)">
+<rect x="110" y="110" width="292" height="292" rx="34" fill="#4a2f1d"/>
+<defs><g id="t"><rect x="0" y="0" width="122" height="122" rx="26" fill="#2f7a3d"/><rect x="0" y="0" width="122" height="105" rx="26" fill="#3d9a4c"/></g></defs>
+<use href="#t" x="128" y="128"/><use href="#t" x="262" y="128"/><use href="#t" x="128" y="262"/>
+<rect x="262" y="262" width="122" height="122" rx="26" fill="#b8860b"/><rect x="262" y="262" width="122" height="105" rx="26" fill="#e6b422"/>
+<g fill="#ff6b8b"><circle cx="189" cy="164" r="19"/><circle cx="212" cy="181" r="19"/><circle cx="203" cy="208" r="19"/><circle cx="175" cy="208" r="19"/><circle cx="166" cy="181" r="19"/></g><circle cx="189" cy="188" r="15" fill="#ffe27a"/>
+<g fill="#5ac8ff"><circle cx="323" cy="164" r="19"/><circle cx="346" cy="181" r="19"/><circle cx="337" cy="208" r="19"/><circle cx="309" cy="208" r="19"/><circle cx="300" cy="181" r="19"/></g><circle cx="323" cy="188" r="15" fill="#fff"/>
+<g fill="#b48cff"><circle cx="189" cy="298" r="19"/><circle cx="212" cy="315" r="19"/><circle cx="203" cy="342" r="19"/><circle cx="175" cy="342" r="19"/><circle cx="166" cy="315" r="19"/></g><circle cx="189" cy="322" r="15" fill="#ffe27a"/>
+<g fill="#fff6c2"><circle cx="323" cy="298" r="19"/><circle cx="346" cy="315" r="19"/><circle cx="337" cy="342" r="19"/><circle cx="309" cy="342" r="19"/><circle cx="300" cy="315" r="19"/></g><circle cx="323" cy="322" r="15" fill="#ffb300"/>
+</g></svg>
