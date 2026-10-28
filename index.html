@@ -58,10 +58,10 @@
 </div>
 
 <div class="ov show" id="menu"><div class="card">
-  <h1>Ogród<br>Bloków</h1>
-  <p>Przeciągaj klocki na grządki. Pełny rząd albo kolumna zakwita i znika. Złote kwiaty dają dodatkowe punkty. Gra trwa, dopóki masz gdzie sadzić!</p>
+  <h1 id="title">Ogród<br>Bloków</h1>
+  <p id="howto">Przeciągaj klocki na grządki. Pełny rząd albo kolumna zakwita i znika. Złote kwiaty dają dodatkowe punkty. Gra trwa, dopóki masz gdzie sadzić!</p>
   <button class="big" id="play">Graj</button>
-  <button class="sec" id="daily">🌼 Wyzwanie dnia<small id="dailyInfo"></small></button>
+  <button class="sec" id="daily">🌼 <span id="dailyL">Wyzwanie dnia</span><small id="dailyInfo"></small></button>
   <div class="rank" id="rank"></div>
 </div></div>
 
@@ -78,6 +78,10 @@
 <script>
 'use strict';
 const N = 8;
+// język: polski dla telefonów ustawionych na polski, dla wszystkich innych angielski
+const LANG = (navigator.languages && navigator.languages[0] || navigator.language || 'en').toLowerCase().startsWith('pl') ? 'pl' : 'en';
+const tr = (pl, en) => LANG === 'pl' ? pl : en;
+document.documentElement.lang = LANG;
 const $ = id => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');
 const store = {
@@ -95,14 +99,16 @@ const dailyBest = () => store.get('ob_daily_' + dayKey(), 0);
 function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return dayKey(d); }
 
 // rangi ogrodnika za łączną liczbę zebranych rzędów i kolumn
-const RANKS = [[0, 'Nowicjusz'], [25, 'Sadzonka'], [75, 'Pączek'], [150, 'Kwiatek'], [300, 'Ogrodnik'], [500, 'Sadownik'],
-  [800, 'Botanik'], [1200, 'Mistrz ogrodu'], [1800, 'Strażnik róż'], [2500, 'Legenda ogrodu']];
+const RANKS = [[0, tr('Nowicjusz', 'Beginner')], [25, tr('Sadzonka', 'Seedling')], [75, tr('Pączek', 'Bud')], [150, tr('Kwiatek', 'Blossom')],
+  [300, tr('Ogrodnik', 'Gardener')], [500, tr('Sadownik', 'Orchardist')], [800, tr('Botanik', 'Botanist')], [1200, tr('Mistrz ogrodu', 'Garden Master')],
+  [1800, tr('Strażnik róż', 'Rose Keeper')], [2500, tr('Legenda ogrodu', 'Garden Legend')]];
 function rankHtml() {
   let i = 0; while (i + 1 < RANKS.length && lines >= RANKS[i + 1][0]) i++;
   const next = RANKS[i + 1];
   const pct = next ? Math.round((lines - RANKS[i][0]) / (next[0] - RANKS[i][0]) * 100) : 100;
-  return `<div class="t"><span>🌱 ${RANKS[i][1]}</span><span>ranga ${i + 1} / ${RANKS.length}</span></div>
-    <div class="s">${next ? `zebrane linie: ${lines} · do rangi „${next[1]}” brakuje ${next[0] - lines}` : `zebrane linie: ${lines} · najwyższa ranga!`}</div>
+  return `<div class="t"><span>🌱 ${RANKS[i][1]}</span><span>${tr('ranga', 'rank')} ${i + 1} / ${RANKS.length}</span></div>
+    <div class="s">${next ? tr(`zebrane linie: ${lines} · do rangi „${next[1]}” brakuje ${next[0] - lines}`, `lines cleared: ${lines} · ${next[0] - lines} more to “${next[1]}”`)
+      : tr(`zebrane linie: ${lines} · najwyższa ranga!`, `lines cleared: ${lines} · top rank!`)}</div>
     <div class="bar"><i style="width:${pct}%"></i></div>`;
 }
 
@@ -165,14 +171,16 @@ function newGame(m = mode) {
 }
 function hud() {
   $('score').textContent = score;
-  $('mode').textContent = mode === 'daily' ? 'Wyzwanie dnia' : '';
-  $('best').textContent = mode === 'daily' ? 'dziś najlepiej ' + Math.max(dailyBest(), score) : 'rekord ' + best;
+  $('mode').textContent = mode === 'daily' ? tr('Wyzwanie dnia', 'Daily challenge') : '';
+  $('best').textContent = mode === 'daily' ? tr('dziś najlepiej ', 'today’s best ') + Math.max(dailyBest(), score) : tr('rekord ', 'best ') + best;
   $('snd').textContent = muted ? '🔇' : '🔊';
 }
+function days(n) { return n === 1 ? tr('dzień', 'day') : tr('dni', 'days'); }
 function showMenu() {
   state = 'menu';
   const db = dailyBest(), s = streak.last === dayKey() || streak.last === yesterdayKey() ? streak.n : 0;
-  $('dailyInfo').textContent = (db ? `dzisiejszy wynik: ${db}` : 'te same klocki dla wszystkich, nowe codziennie') + (s ? ` · seria: ${s} ${s === 1 ? 'dzień' : 'dni'}` : '');
+  $('dailyInfo').textContent = (db ? tr(`dzisiejszy wynik: ${db}`, `today’s score: ${db}`) : tr('te same klocki dla wszystkich, nowe codziennie', 'same blocks for everyone, new every day'))
+    + (s ? ` · ${tr('seria', 'streak')}: ${s} ${days(s)}` : '');
   $('rank').innerHTML = rankHtml();
   $('over').classList.remove('show'); $('menu').classList.add('show');
 }
@@ -360,12 +368,12 @@ function place(p, gx, gy) {
     for (const k of seen) { const [x, y] = k.split(',').map(Number); if (grid[y][x] === GOLD) golds++; grid[y][x] = -1; }
     const gain = 10 * n * n + (combo - 1) * 10 * n + golds * GOLD_BONUS;
     score += gain; runLines += n; lines += n; store.set('ob_lines', lines);
-    if (golds) { floats.push({ text: `Złote kwiaty +${golds * GOLD_BONUS}`, x: W / 2, y: by + cell * N / 2 - 44, c: '#ffd35a', size: 24, t0: t0 + 60 }); tone(1568, .4, 'sine', .07, .15); }
+    if (golds) { floats.push({ text: tr('Złote kwiaty', 'Golden flowers') + ` +${golds * GOLD_BONUS}`, x: W / 2, y: by + cell * N / 2 - 44, c: '#ffd35a', size: 24, t0: t0 + 60 }); tone(1568, .4, 'sine', .07, .15); }
     const cx = bx + (gx + 1) * cell, cy = by + gy * cell;
     floats.push({ text: '+' + gain, x: cx, y: cy, c: '#ffe27a', size: 30, t0 });
-    if (n > 1) floats.push({ text: ['', '', 'Podwójnie!', 'Potrójnie!', 'Ogród marzeń!'][Math.min(n, 4)], x: W / 2, y: by + cell * N / 2, c: '#fff', size: 36, t0 });
-    if (combo > 1) floats.push({ text: 'Seria x' + combo, x: W / 2, y: by + cell * N / 2 + 42, c: '#ffb347', size: 26, t0: t0 + 120 });
-    if (grid.every(r => r.every(v => v < 0))) { score += 300; floats.push({ text: 'Czysta grządka! +300', x: W / 2, y: by + cell * 2, c: '#7dffa0', size: 26, t0: t0 + 300 }); }
+    if (n > 1) floats.push({ text: ['', '', tr('Podwójnie!', 'Double!'), tr('Potrójnie!', 'Triple!'), tr('Ogród marzeń!', 'Dream garden!')][Math.min(n, 4)], x: W / 2, y: by + cell * N / 2, c: '#fff', size: 36, t0 });
+    if (combo > 1) floats.push({ text: tr('Seria x', 'Combo x') + combo, x: W / 2, y: by + cell * N / 2 + 42, c: '#ffb347', size: 26, t0: t0 + 120 });
+    if (grid.every(r => r.every(v => v < 0))) { score += 300; floats.push({ text: tr('Czysta grządka! +300', 'Clear garden! +300'), x: W / 2, y: by + cell * 2, c: '#7dffa0', size: 26, t0: t0 + 300 }); }
     S.clear(n, combo); buzz([20, 30, 20]);
   } else combo = 0;
   if (tray.every(q => q.used)) refill();
@@ -377,16 +385,16 @@ function gameOver() {
   if (state !== 'play') return;
   state = 'over'; S.over(); buzz(80);
   $('final').textContent = score;
-  const ln = `${runLines} ${runLines === 1 ? 'linia' : runLines % 10 >= 2 && runLines % 10 <= 4 && (runLines % 100 < 12 || runLines % 100 > 14) ? 'linie' : 'linii'}`;
+  const ln = LANG !== 'pl' ? `${runLines} ${runLines === 1 ? 'line' : 'lines'}` : `${runLines} ${runLines === 1 ? 'linia' : runLines % 10 >= 2 && runLines % 10 <= 4 && (runLines % 100 < 12 || runLines % 100 > 14) ? 'linie' : 'linii'}`;
   if (mode === 'daily') {
     const today = dayKey(), prev = dailyBest();
     if (streak.last !== today) { streak = { last: today, n: streak.last === yesterdayKey() ? streak.n + 1 : 1 }; store.set('ob_streak', streak); }
     if (score > prev) store.set('ob_daily_' + today, score);
-    $('overT').textContent = 'Wyzwanie dnia';
-    $('overInfo').textContent = `${ln} · ${score > prev ? (prev ? 'lepiej niż wcześniej dziś! 🌼' : 'pierwszy wynik dnia 🌼') : 'dziś najlepiej: ' + prev} · seria ${streak.n} ${streak.n === 1 ? 'dzień' : 'dni'}`;
+    $('overT').textContent = tr('Wyzwanie dnia', 'Daily challenge');
+    $('overInfo').textContent = `${ln} · ${score > prev ? (prev ? tr('lepiej niż wcześniej dziś! 🌼', 'your best today! 🌼') : tr('pierwszy wynik dnia 🌼', 'first score today 🌼')) : tr('dziś najlepiej: ', 'today’s best: ') + prev} · ${tr('seria', 'streak')} ${streak.n} ${days(streak.n)}`;
   } else {
-    $('overT').textContent = 'Brak miejsca!';
-    $('overInfo').textContent = `${ln} · ` + (score >= best && score > 0 ? 'nowy rekord! 🌸' : 'rekord: ' + best);
+    $('overT').textContent = tr('Brak miejsca!', 'No more room!');
+    $('overInfo').textContent = `${ln} · ` + (score >= best && score > 0 ? tr('nowy rekord! 🌸', 'new best! 🌸') : tr('rekord: ', 'best: ') + best);
   }
   $('overRank').innerHTML = rankHtml();
   $('over').classList.add('show');
@@ -400,6 +408,16 @@ $('menuBtn').onclick = () => { if (state === 'play') showMenu(); };
 $('snd').onclick = () => { muted = !muted; store.set('ob_muted', muted); hud(); };
 
 function loop(t) { draw(t); requestAnimationFrame(loop); }
+function applyTexts() {
+  document.title = tr('Ogród Bloków', 'Block Garden');
+  $('title').innerHTML = tr('Ogród<br>Bloków', 'Block<br>Garden');
+  $('howto').textContent = tr('Przeciągaj klocki na grządki. Pełny rząd albo kolumna zakwita i znika. Złote kwiaty dają dodatkowe punkty. Gra trwa, dopóki masz gdzie sadzić!',
+    'Drag blocks onto the garden bed. A full row or column blooms and clears. Golden flowers give bonus points. The game lasts as long as you have room to plant!');
+  $('play').textContent = tr('Graj', 'Play'); $('dailyL').textContent = tr('Wyzwanie dnia', 'Daily challenge');
+  $('again').textContent = tr('Jeszcze raz', 'Play again'); $('toMenu').textContent = 'Menu';
+  $('snd').setAttribute('aria-label', tr('Dźwięk', 'Sound'));
+}
+applyTexts();
 resize(); hud(); tray = []; showMenu(); requestAnimationFrame(loop);
 document.addEventListener('visibilitychange', () => { if (document.hidden && actx) actx.suspend(); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

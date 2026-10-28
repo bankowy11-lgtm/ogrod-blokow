@@ -1,5 +1,5 @@
 // Network-first: always fresh when online, works offline from cache.
-const CACHE = 'ogrod-blokow-v2';
+const CACHE = 'ogrod-blokow-v3';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
