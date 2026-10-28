@@ -135,11 +135,36 @@
   .toggle.off span:last-child { background: #ddd1ad; color: var(--forest); }
   .note { font-size: 12.5px; color: #6c7a5f; text-align: left; background: var(--cream-2); border-radius: 12px; padding: 9px 11px; line-height: 1.4; }
 
+  /* pora roku i zielnik */
+  .season { background: #fff; border-radius: 14px; padding: 10px 12px; margin-top: 10px; text-align: left; }
+  .season .t { display: flex; justify-content: space-between; font-weight: 800; font-size: 14px; gap: 8px; }
+  .season .t span:last-child { color: #6c7a5f; font-weight: 700; white-space: nowrap; }
+  .season .s { font-size: 12px; color: #6c7a5f; margin-top: 2px; }
+  .herb { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 12px; text-align: center; }
+  .card { background: #fff; border-radius: 16px; padding: 8px 6px 10px; display: grid; justify-items: center; gap: 3px; }
+  .card canvas { width: 64px; height: 64px; }
+  .card b { font: 800 13.5px var(--display); }
+  .card small { font-size: 11px; color: #6c7a5f; line-height: 1.3; }
+  .card.lock { background: var(--cream-2); }
+  .card.lock canvas { filter: grayscale(1) brightness(.35); opacity: .45; }
+  .card.legend { box-shadow: 0 0 0 2px var(--gold-deep); }
+  .anim-spin canvas { animation: spin 9s linear infinite; }
+  .anim-sway canvas { animation: sway 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+  .anim-pulse canvas { animation: pulse2 1.8s ease-in-out infinite; }
+  .anim-glow canvas { animation: glow 2s ease-in-out infinite; }
+  .anim-bob canvas { animation: bob 2.2s ease-in-out infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes sway { 50% { transform: rotate(-10deg); } }
+  @keyframes pulse2 { 50% { transform: scale(1.12); } }
+  @keyframes glow { 50% { filter: drop-shadow(0 0 8px #ffd35a) brightness(1.15); } }
+  @keyframes bob { 50% { transform: translateY(-5px); } }
+  .card.lock canvas { animation: none; }
+
   /* telefon obrócony poziomo: prośba o pion */
   #rotate { position: fixed; inset: 0; display: none; place-items: center; background: var(--bg); color: var(--ink); text-align: center; padding: 24px; z-index: 5; font-weight: 800; font-size: 18px; }
   #rotate span { display: block; font-size: 48px; margin-bottom: 10px; }
   @media (orientation: landscape) and (max-height: 520px) { #rotate { display: grid; } }
-  @media (prefers-reduced-motion: reduce) { .ov, .sheet, #toast { transition: none; } .stars span.on, .tool.pulse { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .ov, .sheet, #toast { transition: none; } .stars span.on, .tool.pulse, .card canvas { animation: none !important; } }
 </style>
 </head>
 <body>
@@ -182,6 +207,8 @@
     <button class="mode" data-mode="relax"><b>🍃 <span id="mdRelax">Relaks</span></b><small id="mdRelaxS"></small></button>
     <button class="mode" id="toGarden"><b>🌸 <span id="mdGarden">Mój ogród</span></b><small id="mdGardenS"></small></button>
   </div>
+  <button class="btn2" id="toHerb" style="margin-top:10px">📖 <span id="herbL">Zielnik</span></button>
+  <div class="season" id="season"></div>
   <div class="week" id="week"></div>
   <div class="rank" id="rank"></div>
   <div><button class="link" id="toSettings">⚙ <span id="settingsL">Ustawienia</span></button></div>
@@ -205,6 +232,7 @@
     <div class="pair"><button class="btn2" id="retry"></button><button class="btn2" id="home"></button></div>
     <button class="toggle" id="sndT"><span id="sndL"></span><span id="sndV"></span></button>
     <button class="toggle" id="vibT"><span id="vibL"></span><span id="vibV"></span></button>
+    <button class="toggle" id="musT"><span id="musL"></span><span id="musV"></span></button>
   </div>
 </div></div>
 
@@ -246,11 +274,20 @@
   <button class="btn2" id="gardenBack"></button>
 </div></div>
 
+<div class="ov" id="herbSheet" aria-hidden="true"><div class="sheet">
+  <div class="eyebrow" id="herbEyebrow"></div>
+  <h2 id="herbT"></h2>
+  <p id="herbP"></p>
+  <div class="herb" id="herbList"></div>
+  <button class="btn2" id="herbBack"></button>
+</div></div>
+
 <div class="ov" id="settings" aria-hidden="true"><div class="sheet">
   <h2 id="setT"></h2>
   <div class="stack" style="margin-top:10px">
     <button class="toggle" id="sndT2"><span id="sndL2"></span><span id="sndV2"></span></button>
     <button class="toggle" id="vibT2"><span id="vibL2"></span><span id="vibV2"></span></button>
+    <button class="toggle" id="musT2"><span id="musL2"></span><span id="musV2"></span></button>
     <button class="btn2" id="install"></button>
     <button class="btn2" id="tutAgain"></button>
     <div class="note" id="privacyNote"></div>
@@ -277,6 +314,7 @@ let best = store.get('ob_best', 0), bestTimed = store.get('ob_best_timed', 0), m
 let lines = store.get('ob_lines', 0), streak = store.get('ob_streak', { last: '', n: 0 }), seeds = store.get('ob_seeds', 0);
 let owned = store.get('ob_themes', ['meadow']), themeId = store.get('ob_theme', 'meadow'), tutDone = store.get('ob_tut', false);
 let decorOwned = store.get('ob_decor', []), decorOn = store.get('ob_decor_on', []);
+let musicOn = store.get('ob_music', true), coll = store.get('ob_coll', []);
 
 // --- tryby gry ---
 const MODES = {
@@ -382,6 +420,64 @@ const DECOR = [
   { id: 'rainbow', ic: '🌈', price: 300, name: tr('Tęcza', 'Rainbow'), desc: tr('na niebie nad ogrodem', 'in the sky above the garden') },
 ];
 const decorActive = id => decorOwned.includes(id) && decorOn.includes(id);
+
+// --- pory roku: co 40 zebranych linii ogród przechodzi w kolejną porę; zmienia się tło, cząsteczki i muzyka ---
+const SEASON_LINES = 40;
+const SEASONS = [
+  { id: 'spring', ic: '🌸', name: tr('Wiosna', 'Spring'), tint: 'rgba(255,190,220,.06)', scale: [523, 587, 659, 784, 880, 1047], beat: .42 },
+  { id: 'summer', ic: '☀️', name: tr('Lato', 'Summer'), tint: 'rgba(255,220,120,.08)', scale: [392, 440, 494, 587, 659, 784], beat: .36 },
+  { id: 'autumn', ic: '🍂', name: tr('Jesień', 'Autumn'), tint: 'rgba(255,140,60,.10)', scale: [440, 523, 587, 659, 784, 880], beat: .5 },
+  { id: 'winter', ic: '❄️', name: tr('Zima', 'Winter'), tint: 'rgba(160,200,255,.12)', scale: [294, 349, 392, 440, 523, 587], beat: .6 },
+];
+const seasonIdx = (n = lines) => Math.floor(n / SEASON_LINES) % 4;
+const season = () => SEASONS[seasonIdx()];
+const gardenYear = () => Math.floor(lines / (SEASON_LINES * 4)) + 1;
+function seasonHtml() {
+  const s = season(), next = SEASONS[(seasonIdx() + 1) % 4], left = SEASON_LINES - lines % SEASON_LINES;
+  return `<div class="t"><span>${s.ic} ${s.name}</span><span>${tr('rok ogrodu', 'garden year')} ${gardenYear()}</span></div>
+    <div class="s">${tr(`do pory „${next.name}” brakuje ${left} linii`, `${left} lines until ${next.name}`)}</div>
+    <div class="bar"><i style="width:${(SEASON_LINES - left) / SEASON_LINES * 100}%"></i></div>`;
+}
+
+// --- zielnik: rzadkie kwiaty za osiągnięcia, każdy z własną animacją ---
+const COLLECTION = [
+  { id: 'daisy', petals: 12, c: ['#ffffff', '#ffd23f'], anim: 'sway', reward: 20, name: tr('Stokrotka', 'Daisy'), desc: tr('Ukończ pierwszą rundę', 'Finish your first round') },
+  { id: 'poppy', petals: 4, c: ['#e8322e', '#2b1d10'], anim: 'pulse', reward: 20, name: tr('Mak', 'Poppy'), desc: tr('Zrób serię x4', 'Get a x4 combo') },
+  { id: 'lily', petals: 6, c: ['#f4fbff', '#c8e6a0'], anim: 'bob', reward: 20, name: tr('Konwalia', 'Lily of the valley'), desc: tr('Zbierz 3 złote kwiaty w jednej rundzie', 'Clear 3 golden flowers in one round') },
+  { id: 'sunflower', petals: 14, c: ['#ffc400', '#5a3210'], anim: 'spin', reward: 20, name: tr('Słonecznik', 'Sunflower'), desc: tr('Zdobądź 1000 pkt w jednej rundzie', 'Score 1000 in one round') },
+  { id: 'aster', petals: 16, c: ['#9b7bff', '#ffd23f'], anim: 'spin', reward: 25, name: tr('Aster', 'Aster'), desc: tr('Zbierz 3 linie jednym klockiem', 'Clear 3 lines with one block') },
+  { id: 'lotus', petals: 8, c: ['#ff9ec7', '#fff2a8'], anim: 'glow', reward: 25, name: tr('Lotos', 'Lotus'), desc: tr('Wyczyść całą grządkę', 'Clear the whole garden bed') },
+  { id: 'orchid', petals: 5, c: ['#d36be0', '#fff0fb'], anim: 'pulse', reward: 25, name: tr('Storczyk', 'Orchid'), desc: tr('Zdobądź 3 gwiazdki w rundzie', 'Get 3 stars in a round') },
+  { id: 'forget', petals: 5, c: ['#6fb8ff', '#ffe27a'], anim: 'bob', reward: 25, name: tr('Niezapominajka', 'Forget-me-not'), desc: tr('Graj w wyzwanie dnia 3 dni z rzędu', 'Play the daily challenge 3 days in a row') },
+  { id: 'snowdrop', petals: 3, c: ['#ffffff', '#9fd18a'], anim: 'sway', reward: 30, name: tr('Przebiśnieg', 'Snowdrop'), desc: tr('Ukończ rundę zimą', 'Finish a round in winter') },
+  { id: 'fern', petals: 6, c: ['#fff36b', '#ff7a1a'], anim: 'glow', reward: 100, legend: true, name: tr('Kwiat paproci', 'Fern flower'), desc: tr('Legenda: zdobądź 2500 pkt w jednej rundzie', 'Legendary: score 2500 in one round') },
+];
+function unlockFlower(id) {
+  if (coll.includes(id)) return;
+  const f = COLLECTION.find(x => x.id === id); coll.push(id); store.set('ob_coll', coll);
+  seeds += f.reward; store.set('ob_seeds', seeds);
+  setTimeout(() => { toast(`📖 ${tr('Nowy kwiat w zielniku', 'New flower in your herbarium')}: ${f.name} · +${f.reward} 🌱`, 3000); S.goal(); buzz([15, 50, 15]); }, 300);
+}
+function drawCollFlower(c, f) {
+  const x = c.getContext('2d'), w = c.width, cx = w / 2, cy = w / 2;
+  x.clearRect(0, 0, w, w);
+  if (f.legend) { const g = x.createRadialGradient(cx, cy, 2, cx, cy, w / 2); g.addColorStop(0, 'rgba(255,240,140,.9)'); g.addColorStop(1, 'rgba(255,240,140,0)'); x.fillStyle = g; x.fillRect(0, 0, w, w); }
+  x.strokeStyle = '#3d7a3a'; x.lineWidth = w * .05; x.beginPath(); x.moveTo(cx, cy); x.quadraticCurveTo(cx - w * .08, cy + w * .3, cx, w * .98); x.stroke();
+  x.fillStyle = '#4a9a45'; x.beginPath(); x.ellipse(cx + w * .12, cy + w * .33, w * .12, w * .05, -.5, 0, 7); x.fill();
+  const pr = w * .2, ps = f.petals >= 12 ? .38 : f.petals >= 8 ? .5 : f.petals <= 4 ? .9 : .7;
+  x.fillStyle = f.c[0]; x.strokeStyle = 'rgba(0,0,0,.12)'; x.lineWidth = 1;
+  for (let i = 0; i < f.petals; i++) { const a = i / f.petals * Math.PI * 2 - Math.PI / 2; x.beginPath(); x.ellipse(cx + Math.cos(a) * pr, cy + Math.sin(a) * pr, pr * ps, pr * ps * .75, a, 0, 7); x.fill(); x.stroke(); }
+  x.fillStyle = f.c[1]; x.beginPath(); x.arc(cx, cy, pr * .55, 0, 7); x.fill();
+}
+function renderHerb() {
+  $('herbEyebrow').textContent = tr('Kolekcja', 'Collection');
+  $('herbT').textContent = tr('Zielnik', 'Herbarium') + ` · ${coll.length}/${COLLECTION.length}`;
+  $('herbP').textContent = tr('Rzadkie kwiaty zdobywasz za osiągnięcia, nie za punkty. Każdy daje też nasiona.', 'Rare flowers come from achievements, not points. Each one also gives seeds.');
+  $('herbList').innerHTML = COLLECTION.map(f => { const has = coll.includes(f.id);
+    return `<div class="card ${has ? 'anim-' + f.anim : 'lock'}${f.legend ? ' legend' : ''}"><canvas width="128" height="128" data-fl="${f.id}"></canvas>
+      <b>${has ? f.name : '???'}</b><small>${f.desc}</small><small>${has ? '✓ +' + f.reward + ' 🌱' : '+' + f.reward + ' 🌱'}</small></div>`; }).join('');
+  document.querySelectorAll('canvas[data-fl]').forEach(c => drawCollFlower(c, COLLECTION.find(f => f.id === c.dataset.fl)));
+}
 const NORMAL = 7, GOLD = 7, GOLD_BONUS = 25;
 const flowerOf = col => col === GOLD ? GOLD_FLOWER : theme.flowers[col];
 
@@ -445,10 +541,23 @@ const S = {
   record: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .4, 'triangle', .08, i * .09)),
   tick: () => tone(1200, .05, 'square', .03),
 };
+// spokojna melodia w skali pory roku (gra tylko w trakcie rundy)
+let musicT = 0, musicStep = 0;
+function musicTick() {
+  if (!musicOn || muted || state !== 'play' || !actx || actx.state !== 'running') { musicT = 0; return; }
+  const s = season(), now = actx.currentTime;
+  if (!musicT || musicT < now) musicT = now + .05;
+  while (musicT < now + .25) {
+    const step = musicStep++ % 16;
+    if (Math.random() < .72) tone(s.scale[Math.floor(Math.random() * s.scale.length)] / (step % 4 === 0 ? 1 : 1), s.beat * 1.6, s.id === 'winter' ? 'sine' : 'triangle', .022, musicT - now);
+    if (step % 8 === 0) tone(s.scale[0] / 2, s.beat * 6, 'sine', .03, musicT - now);
+    musicT += s.beat;
+  }
+}
 const buzz = ms => { if (!vibe) return; try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
 
 // --- nakładki: pokazywane i ukrywane razem z aria-hidden ---
-const OVERLAYS = ['menu', 'goalsSheet', 'pause', 'confirm', 'over', 'garden', 'settings'];
+const OVERLAYS = ['menu', 'goalsSheet', 'pause', 'confirm', 'over', 'garden', 'herbSheet', 'settings'];
 function showOv(id) { for (const o of OVERLAYS) { const el = $(o), on = o === id; el.classList.toggle('show', on); el.setAttribute('aria-hidden', on ? 'false' : 'true'); } hud(); }
 let confirmCb = null, confirmNoCb = null;
 function ask(title, text, yes, cb, no = tr('Anuluj', 'Cancel'), noCb = null) {
@@ -569,6 +678,8 @@ function showMenu() {
   $('play').textContent = sv ? tr('Kontynuuj', 'Continue') + ' · ' + MODES[sv.mode].name.toLowerCase() + ' · ' + sv.score : tr('Graj', 'Play');
   $('newGame').hidden = !sv;
   $('week').innerHTML = weekHtml();
+  $('season').innerHTML = seasonHtml();
+  $('herbL').textContent = tr('Zielnik', 'Herbarium') + ` · ${coll.length}/${COLLECTION.length}`;
   $('rank').innerHTML = rankHtml();
   showOv('menu');
 }
@@ -678,11 +789,14 @@ function buildBg() {
   const r = makeRng(7).next;
   for (let i = 0; i < 9; i++) leaf(-10 + r() * 50, H * (.15 + r() * .75), 22 + r() * 18, r() * 6, i % 2 ? theme.leaf[0] : theme.leaf[1]);
   for (let i = 0; i < 9; i++) leaf(W + 10 - r() * 50, H * (.15 + r() * .75), 22 + r() * 18, r() * 6, i % 2 ? theme.leaf[0] : theme.leaf[1]);
+  // odcień pory roku; zimą śnieżne zaspy na dole ekranu
+  b.fillStyle = season().tint; b.fillRect(0, 0, W, H);
+  if (season().id === 'winter') { b.fillStyle = 'rgba(240,248,255,.55)'; b.beginPath(); b.moveTo(0, H); for (let x = 0; x <= W; x += 10) b.lineTo(x, H - 18 - Math.sin(x / 37) * 7 - Math.sin(x / 13) * 3); b.lineTo(W, H); b.fill(); }
   const vig = b.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .4, W / 2, H / 2, Math.max(W, H) * .8);
   vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.32)'); b.fillStyle = vig; b.fillRect(0, 0, W, H);
 }
 const pollen = Array.from({ length: REDUCED ? 8 : 30 }, () => ({ x: Math.random(), y: Math.random(), s: .3 + Math.random() * .7, p: Math.random() * 7 }));
-const drift = Array.from({ length: REDUCED ? 3 : 9 }, () => ({ x: Math.random(), y: Math.random(), s: .5 + Math.random() * .5, p: Math.random() * 7, c: Math.floor(Math.random() * 7) }));
+const drift = Array.from({ length: REDUCED ? 4 : 22 },() => ({ x: Math.random(), y: Math.random(), s: .5 + Math.random() * .5, p: Math.random() * 7, c: Math.floor(Math.random() * 7) }));
 const butterflies = Array.from({ length: 3 }, (_, i) => ({ sp: 22 + i * 9, off: i * 260, y: .2 + i * .27, c: ['#ffb347', '#b48cff', '#5ac8ff'][i], p: i * 2 }));
 const bees = Array.from({ length: 2 }, (_, i) => ({ x: 60 + i * 200, y: 300, tx: 0, ty: 0, t: 0, p: i * 3 }));
 
@@ -736,12 +850,21 @@ function draw(t) {
     ctx.globalAlpha = (.18 + .2 * Math.sin(t / 800 + q.p * 3)) * q.s; ctx.fillStyle = theme.glow ? '#cfe9ff' : '#fff3b0';
     ctx.beginPath(); ctx.arc(q.x * W, q.y * H, 1 + q.s * 1.6, 0, 7); ctx.fill();
   }
+  // cząsteczki pory roku: wiosną płatki, latem świetliki, jesienią liście, zimą śnieg
+  const sid = season().id;
   for (const d of drift) {
-    d.y += .00004 * d.s * 16; d.x += Math.sin(t / 1400 + d.p) * .00025; if (d.y > 1.03) { d.y = -.03; d.x = Math.random(); }
-    ctx.save(); ctx.globalAlpha = .35 * d.s; ctx.translate(d.x * W, d.y * H); ctx.rotate(Math.sin(t / 900 + d.p) * 1.2);
-    ctx.fillStyle = theme.flowers[d.c][0]; ctx.beginPath(); ctx.ellipse(0, 0, 6 * d.s, 3 * d.s, 0, 0, 7); ctx.fill(); ctx.restore();
+    const fall = sid === 'winter' ? .00007 : sid === 'autumn' ? .00006 : .00004;
+    d.y += fall * d.s * 16; d.x += Math.sin(t / 1400 + d.p) * (sid === 'summer' ? .0006 : .00025); if (d.y > 1.03) { d.y = -.03; d.x = Math.random(); }
+    const x = d.x * W, y = sid === 'summer' ? (.15 + .7 * ((d.y + Math.sin(t / 3000 + d.p) * .05 + 1) % 1)) * H : d.y * H;
+    ctx.save(); ctx.translate(x, y);
+    if (sid === 'winter') { ctx.globalAlpha = .75 * d.s; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, 2 + d.s * 2.5, 0, 7); ctx.fill(); }
+    else if (sid === 'summer') { const a = .4 + .5 * Math.sin(t / 400 + d.p * 5); ctx.globalAlpha = Math.max(0, a) * d.s; const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 9); g.addColorStop(0, '#fff7a0'); g.addColorStop(1, 'rgba(255,247,160,0)'); ctx.fillStyle = g; ctx.fillRect(-9, -9, 18, 18); }
+    else if (sid === 'autumn') { ctx.globalAlpha = .7 * d.s; ctx.rotate(Math.sin(t / 700 + d.p) * 1.6); ctx.fillStyle = ['#d9531e', '#e8a33d', '#b33a1a'][d.c % 3]; ctx.beginPath(); ctx.ellipse(0, 0, 8 * d.s, 4 * d.s, 0, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(80,30,10,.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-8 * d.s, 0); ctx.lineTo(8 * d.s, 0); ctx.stroke(); }
+    else { ctx.globalAlpha = .35 * d.s; ctx.rotate(Math.sin(t / 900 + d.p) * 1.2); ctx.fillStyle = theme.flowers[d.c][0]; ctx.beginPath(); ctx.ellipse(0, 0, 6 * d.s, 3 * d.s, 0, 0, 7); ctx.fill(); }
+    ctx.restore();
   }
   ctx.globalAlpha = 1;
+  musicTick();
   if (!grid || state === 'menu') { drawDecorFlyers(t); return; }
   let ox = 0;
   if (shakeT) { const k = (t - shakeT) / 260; if (k > 1) shakeT = 0; else ox = Math.sin(k * 40) * 5 * (1 - k); }
@@ -761,6 +884,18 @@ function draw(t) {
     ctx.beginPath(); ctx.moveTo(X + cell * .2, Y + cell * .38); ctx.lineTo(X + cell * .7, Y + cell * .38); ctx.moveTo(X + cell * .25, Y + cell * .62); ctx.lineTo(X + cell * .65, Y + cell * .62); ctx.stroke();
   }
   if (decorActive('frame')) for (const [cx, cy] of [[fx - 2, fy - 2], [fx + fw + 2, fy - 2], [fx - 2, fy + fw + 2], [fx + fw + 2, fy + fw + 2]]) smallFlower(cx, cy, 11, theme.flowers[0]);
+  // pora roku na ramie grządki: zimą czapa śniegu, jesienią opadłe liście
+  if (sid === 'winter') {
+    ctx.fillStyle = 'rgba(248,252,255,.95)'; ctx.beginPath(); ctx.moveTo(fx - 4, fy + 6);
+    for (let x = 0; x <= fw + 8; x += 8) ctx.lineTo(fx - 4 + x, fy - 4 - Math.abs(Math.sin(x / 23)) * 6);
+    for (let x = fw + 8; x >= 0; x -= 10) ctx.lineTo(fx - 4 + x, fy + 4 + Math.sin(x / 9) * 2 + (x % 30 === 0 ? 5 : 0));
+    ctx.fill();
+    ctx.fillStyle = 'rgba(220,235,255,.35)'; rr(ctx, fx, fy, fw, fw, 16); ctx.fill();
+  } else if (sid === 'autumn') {
+    for (let i = 0; i < 7; i++) { const lx = fx + 12 + i * (fw - 24) / 6, ly = fy - 2 + (i % 2) * 3;
+      ctx.save(); ctx.translate(lx, ly); ctx.rotate(i * 1.7); ctx.fillStyle = ['#d9531e', '#e8a33d', '#b33a1a'][i % 3];
+      ctx.beginPath(); ctx.ellipse(0, 0, 8, 4, 0, 0, 7); ctx.fill(); ctx.restore(); }
+  }
   if (decorActive('lanterns')) {
     const y0 = fy - 16; ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.moveTo(fx, y0); ctx.quadraticCurveTo(fx + fw / 2, y0 + 12, fx + fw, y0); ctx.stroke();
@@ -978,7 +1113,11 @@ function place(p, gx, gy) {
     const gain = 10 * n * n + (combo - 1) * 10 * n + golds * GOLD_BONUS;
     score += gain; runLines += n;
     if (mode === 'timed') { timeLeft = Math.min(TIMED_SECS, timeLeft + 2 * n); floats.push({ text: `+${2 * n}s`, x: W - 50, y: by - 6, c: '#7dffa0', size: 20, t0 }); }
-    const rankBefore = rankOf(lines); lines += n; store.set('ob_lines', lines);
+    const rankBefore = rankOf(lines), seasonBefore = seasonIdx(); lines += n; store.set('ob_lines', lines);
+    if (seasonIdx() !== seasonBefore) { const s = season(); buildBg(); setTimeout(() => toast(`${s.ic} ${tr('Nadeszła pora roku', 'A new season')}: ${s.name}!`, 2600), 500); S.goal(); }
+    if (maxCombo >= 4) unlockFlower('poppy');
+    if (n >= 3) unlockFlower('aster');
+    if (goldsCleared >= 3) unlockFlower('lily');
     if (rankOf(lines) > rankBefore) floats.push({ text: tr('Nowa ranga: ', 'New rank: ') + RANKS[rankOf(lines)][1], x: W / 2, y: by + cell * 1.5, c: '#7dffa0', size: 24, t0: t0 + 450 });
     if (golds) { floats.push({ text: tr('Złote kwiaty', 'Golden flowers') + ` +${golds * GOLD_BONUS}`, x: W / 2, y: by + cell * N / 2 - 44, c: '#ffd35a', size: 24, t0: t0 + 60 }); tone(1568, .4, 'sine', .07, .15); }
     const cx = bx + (gx + 1) * cell, cy = by + gy * cell;
@@ -988,7 +1127,7 @@ function place(p, gx, gy) {
     else if (n === 2) { floats.push({ text: tr('Podwójnie!', 'Double!'), x: W / 2, y: by + cell * N / 2, c: '#fff', size: 36, t0 }); flashT = t0; }
     if (combo > 1) floats.push({ text: tr('Seria x', 'Combo x') + combo, x: W / 2, y: by + cell * N / 2 + 42, c: '#ffb347', size: 26, t0: t0 + 120 });
     if (combo >= 3) flashT = t0;
-    if (clean) { score += 300; floats.push({ text: tr('Czysta grządka +300', 'Clear garden +300'), x: W / 2, y: by + cell * N / 2 + 84, c: '#7dffa0', size: 24, t0: t0 + 300 }); }
+    if (clean) { unlockFlower('lotus'); score += 300; floats.push({ text: tr('Czysta grządka +300', 'Clear garden +300'), x: W / 2, y: by + cell * N / 2 + 84, c: '#7dffa0', size: 24, t0: t0 + 300 }); }
     S.clear(n, combo); buzz(n > 1 ? [20, 30, 20, 30, 30] : [20, 30, 20]);
   } else combo = 0;
   // cele rundy
@@ -996,6 +1135,8 @@ function place(p, gx, gy) {
     g.done = true; S.goal(); buzz([10, 40, 10]);
     toast('✓ ' + GOAL_TYPES[g.type].text(g.n) + ` · +${g.reward} 🌱`);
   }
+  if (score >= 1000) unlockFlower('sunflower');
+  if (score >= 2500) unlockFlower('fern');
   if (tray.every(q => q.used)) refill();
   const curBest = mode === 'classic' ? best : mode === 'timed' ? bestTimed : Infinity;
   if (score > curBest && mode !== 'daily') {
@@ -1052,6 +1193,10 @@ function gameOver() {
     $('oBest').textContent = best;
   }
   rec ? S.record() : S.over(); buzz(rec ? [20, 40, 20, 40, 60] : 80);
+  unlockFlower('daisy');
+  if (done.length === 3) unlockFlower('orchid');
+  if (liveStreak() >= 3) unlockFlower('forget');
+  if (season().id === 'winter') unlockFlower('snowdrop');
   $('final').textContent = score;
   [...$('overStars').children].forEach((s, i) => { s.classList.remove('on'); void s.offsetWidth; if (i < done.length) s.classList.add('on'); });
   $('oLinesL').textContent = tr('Linie', 'Lines'); $('oComboL').textContent = tr('Seria', 'Combo');
@@ -1122,11 +1267,15 @@ async function installApp() {
 
 // --- przyciski ---
 function syncToggles() {
-  for (const [k, v] of [['sndV', !muted], ['sndV2', !muted], ['vibV', vibe], ['vibV2', vibe]]) { $(k).textContent = v ? tr('wł.', 'on') : tr('wył.', 'off'); $(k).parentElement.classList.toggle('off', !v); }
+  for (const [k, v] of [['sndV', !muted], ['sndV2', !muted], ['vibV', vibe], ['vibV2', vibe], ['musV', musicOn], ['musV2', musicOn]]) { $(k).textContent = v ? tr('wł.', 'on') : tr('wył.', 'off'); $(k).parentElement.classList.toggle('off', !v); }
   $('sndBtn').textContent = muted ? '🔇' : '🔊';
 }
 function toggleSound() { muted = !muted; store.set('ob_muted', muted); syncToggles(); if (!muted) { audio(); tone(880, .1, 'triangle', .05); } }
 function toggleVibe() { vibe = !vibe; store.set('ob_vibe', vibe); syncToggles(); buzz(30); }
+function toggleMusic() { musicOn = !musicOn; store.set('ob_music', musicOn); syncToggles(); }
+$('musT').onclick = $('musT2').onclick = toggleMusic;
+$('toHerb').onclick = () => { renderHerb(); showOv('herbSheet'); };
+$('herbBack').onclick = showMenu;
 $('play').onclick = () => { audio(); if (!resumeSaved()) newGame('classic'); };
 $('newGame').onclick = () => startMode('classic');
 document.querySelectorAll('.mode[data-mode]').forEach(b => b.onclick = () => { audio(); startMode(b.dataset.mode); });
@@ -1165,7 +1314,8 @@ function applyTexts() {
   $('undoL').textContent = tr('Cofnij', 'Undo'); $('hintL').textContent = tr('Podpowiedź', 'Hint');
   $('pauseT').textContent = tr('Pauza', 'Paused'); $('pauseP').textContent = tr('Gra jest zapisana. Możesz wrócić do niej później.', 'Your game is saved. You can come back to it later.');
   $('resume').textContent = tr('Wznów', 'Resume'); $('retry').textContent = '↻ ' + tr('Od nowa', 'Restart'); $('home').textContent = '⌂ Menu';
-  for (const s of ['', '2']) { $('sndL' + s).textContent = tr('Dźwięk', 'Sound'); $('vibL' + s).textContent = tr('Wibracje', 'Vibration'); }
+  for (const s of ['', '2']) { $('sndL' + s).textContent = tr('Dźwięk', 'Sound'); $('vibL' + s).textContent = tr('Wibracje', 'Vibration'); $('musL' + s).textContent = tr('Muzyka', 'Music'); }
+  $('herbBack').textContent = '← ' + tr('Wróć', 'Back');
   $('again').textContent = tr('Jeszcze raz', 'Play again'); $('overGarden').textContent = '🌸 ' + tr('Mój ogród', 'My garden'); $('toMenu').textContent = '⌂ Menu';
   $('gardenEyebrow').textContent = tr('Mój ogród', 'My garden'); $('gardenT').textContent = tr('Rozbuduj ogród', 'Grow your garden');
   $('gardenP').textContent = tr('Za nasiona z rund kupujesz dekoracje i nowe rabaty. Wszystko widać potem w trakcie gry.', 'Spend seeds from your rounds on decorations and new gardens. You’ll see them while you play.');
