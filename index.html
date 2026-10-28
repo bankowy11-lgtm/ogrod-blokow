@@ -9,7 +9,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-  /* Ogród: głęboka zieleń trawnika, kremowe karty jak papierowe etykiety nasion, złote akcenty. Wynik i cele u góry, grządka w środku, klocki na dole. */
+  /* Ogród: głęboka zieleń trawnika, kremowe karty jak papierowe etykiety nasion, złote akcenty. Wynik i cele u góry, grządka w środku, klocki i narzędzia na dole. */
   :root {
     --bg: #12261a; --panel: rgba(10,26,16,.74); --ink: #f3f7ea; --muted: #b9d3a8;
     --cream: #fbf4e2; --cream-2: #f1e6c8; --forest: #1f4a2e; --forest-2: #2d6a40; --bark: #6b4a2a;
@@ -23,33 +23,46 @@
   button { font-family: var(--ui); color: inherit; cursor: pointer; }
   button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
-  /* górny pasek: menu · liczniki · podpowiedź; pod nim cele rundy */
+  /* górny pasek: pauza · liczniki · dźwięk; pod nim cele rundy z paskami postępu */
   #top { position: fixed; top: 0; left: 0; right: 0; display: grid; grid-template-columns: 44px 1fr 44px; align-items: start; gap: 8px;
     padding: calc(10px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
     pointer-events: none; transition: opacity .3s, visibility .3s; visibility: hidden; opacity: 0; }
   #top > * { pointer-events: auto; }
   .round { position: relative; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-size: 18px; display: grid; place-items: center; color: var(--ink); }
   .round:active { transform: scale(.94); }
-  .round .n { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--gold); color: var(--gold-ink); font-size: 11px; font-weight: 800; display: grid; place-items: center; padding: 0 4px; box-sizing: border-box; }
-  .round[disabled] { opacity: .4; }
   .stats { display: flex; justify-content: center; gap: 5px; min-width: 0; }
   .stat { flex: 1 1 0; min-width: 0; max-width: 84px; padding: 5px 4px 6px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); text-align: center; }
   .stat small { display: block; font-size: 9px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stat b { display: block; font: 800 20px/1.1 var(--display); color: var(--ink); font-variant-numeric: tabular-nums; }
   .stat.main b { color: #fff; font-size: 22px; }
   .stat.warn b { color: #ff8a8a; }
-  #goals { grid-column: 1 / -1; display: flex; justify-content: center; gap: 5px; margin-top: 2px; flex-wrap: wrap; }
-  .goal { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  #goals { grid-column: 1 / -1; display: flex; justify-content: center; gap: 5px; margin-top: 2px; }
+  .goal { position: relative; overflow: hidden; font-size: 11px; font-weight: 700; padding: 4px 8px 6px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .goal i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--leaf); border-radius: 0 2px 2px 0; transition: width .3s; }
   .goal.done { color: var(--gold-ink); background: var(--gold); border-color: var(--gold); }
+  .goal.done i { background: transparent; }
   #timebar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.12); overflow: hidden; display: none; }
   #timebar i { display: block; height: 100%; background: var(--leaf); transition: width .2s linear; }
 
-  #toast { position: fixed; left: 50%; top: calc(146px + env(safe-area-inset-top)); transform: translate(-50%, -8px); opacity: 0;
+  /* dolny pasek: narzędzia ogrodnika */
+  #bottom { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px;
+    padding: 0 max(12px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    visibility: hidden; opacity: 0; transition: opacity .3s, visibility .3s; }
+  .tool { display: grid; justify-items: center; gap: 1px; min-width: 62px; padding: 5px 8px 6px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); font-size: 10.5px; font-weight: 800; color: var(--ink); line-height: 1.1; }
+  .tool .i { font-size: 18px; }
+  .tool:active { transform: scale(.96); }
+  .tool[disabled] { opacity: .38; }
+  .tool.hint { border-color: rgba(127,233,255,.45); }
+  .tools-n { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 800; color: var(--gold); white-space: nowrap; }
+  .tool.pulse { animation: pulse 1s ease-in-out infinite; border-color: var(--gold); }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 4px rgba(255,211,90,.35); } }
+
+  #toast { position: fixed; left: 50%; top: calc(150px + env(safe-area-inset-top)); transform: translate(-50%, -8px); opacity: 0;
     padding: 9px 14px; border-radius: 14px; background: var(--cream); color: var(--forest); font-size: 13.5px; font-weight: 700;
     max-width: min(320px, calc(100vw - 32px)); text-align: center; transition: opacity .25s, transform .25s; pointer-events: none; box-shadow: 0 6px 20px rgba(0,0,0,.3); }
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-  /* nakładki: kremowe karty, płynne wejście */
+  /* nakładki: kremowe karty, płynne wejście; ukryte są niewidoczne także dla czytników */
   .ov { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(8,20,12,.66);
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); overflow-y: auto; scrollbar-width: none;
     opacity: 0; visibility: hidden; transition: opacity .28s, visibility .28s; }
@@ -63,7 +76,9 @@
   .sheet h1 { margin: 4px 0 6px; font: 800 44px/1.02 var(--display); color: var(--forest); }
   .sheet h1 span { color: var(--gold-deep); }
   .sheet h2 { margin: 2px 0 6px; font: 800 28px/1.1 var(--display); color: var(--forest); text-wrap: balance; }
+  .sheet h3 { margin: 14px 0 6px; font: 800 15px var(--display); text-align: left; }
   .sheet p { color: #4d5e45; margin: 6px 0 14px; line-height: 1.45; font-size: 14.5px; }
+  .sheet a { color: var(--forest-2); font-weight: 800; }
   .big { background: var(--gold); color: var(--gold-ink); border: 0; border-radius: 20px; padding: 14px 30px; width: 100%;
     font: 800 19px var(--ui); box-shadow: 0 5px 0 var(--gold-deep); }
   .big:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--gold-deep); }
@@ -91,25 +106,40 @@
   .gl { display: flex; justify-content: space-between; gap: 8px; align-items: center; background: #fff; border-radius: 12px; padding: 8px 10px; font-size: 13.5px; font-weight: 700; }
   .gl span:last-child { color: #6c7a5f; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .gl.done span:last-child { color: var(--forest-2); }
-  .rank { background: #fff; border-radius: 14px; padding: 10px 12px; margin-top: 10px; text-align: left; }
-  .rank .t { display: flex; justify-content: space-between; font-weight: 800; font-size: 14px; gap: 8px; }
-  .rank .t span:last-child { color: #6c7a5f; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .rank .s { font-size: 12px; color: #6c7a5f; margin-top: 2px; }
+  .gl .bar { flex: 0 0 60px; margin: 0; }
+  .rank, .week { background: #fff; border-radius: 14px; padding: 10px 12px; margin-top: 10px; text-align: left; }
+  .rank .t, .week .t { display: flex; justify-content: space-between; font-weight: 800; font-size: 14px; gap: 8px; }
+  .rank .t span:last-child, .week .t span:last-child { color: #6c7a5f; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rank .s, .week .s { font-size: 12px; color: #6c7a5f; margin-top: 2px; }
+  .week .w { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; font-weight: 700; margin-top: 6px; }
+  .week .w span:last-child { font-variant-numeric: tabular-nums; color: #6c7a5f; white-space: nowrap; }
+  .week .w.done span { color: var(--forest-2); }
   .bar { height: 6px; background: var(--cream-2); border-radius: 3px; margin-top: 6px; overflow: hidden; }
   .bar i { display: block; height: 100%; background: var(--forest-2); border-radius: 3px; }
   .seeds { display: inline-flex; align-items: center; gap: 6px; background: var(--forest); color: var(--cream); border-radius: 14px; padding: 5px 12px; font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; }
-  .themes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+  .themes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
   .theme { background: #fff; border: 2px solid var(--cream-2); border-radius: 18px; padding: 8px; display: grid; gap: 6px; justify-items: center; }
   .theme.sel { border-color: var(--gold-deep); box-shadow: 0 0 0 3px rgba(224,165,38,.25); }
   .theme canvas { width: 100%; max-width: 140px; aspect-ratio: 7 / 4; border-radius: 12px; }
   .theme b { font: 800 13.5px var(--display); }
-  .theme button { width: 100%; border: 0; border-radius: 12px; padding: 7px 4px; font-weight: 800; font-size: 13px; background: var(--gold); color: var(--gold-ink); }
-  .theme button.own { background: var(--cream-2); color: var(--forest); }
-  .theme button.no { background: #eee6cf; color: #a59c80; }
+  .theme button, .decor button { width: 100%; border: 0; border-radius: 12px; padding: 7px 4px; font-weight: 800; font-size: 13px; background: var(--gold); color: var(--gold-ink); }
+  .theme button.own, .decor button.own { background: var(--cream-2); color: var(--forest); }
+  .theme button.no, .decor button.no { background: #eee6cf; color: #a59c80; }
+  .decors { display: grid; gap: 8px; margin: 8px 0 12px; }
+  .decor { display: grid; grid-template-columns: 34px 1fr 96px; gap: 8px; align-items: center; background: #fff; border-radius: 14px; padding: 8px 10px; text-align: left; }
+  .decor .ic { font-size: 24px; }
+  .decor b { display: block; font: 800 14px var(--display); }
+  .decor small { display: block; font-size: 11.5px; color: #6c7a5f; line-height: 1.3; }
   .toggle { display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 14px; padding: 10px 12px; font-weight: 800; font-size: 15px; border: 0; color: var(--forest); width: 100%; }
   .toggle span:last-child { font-size: 13px; background: var(--forest); color: var(--cream); padding: 4px 10px; border-radius: 10px; }
   .toggle.off span:last-child { background: #ddd1ad; color: var(--forest); }
-  @media (prefers-reduced-motion: reduce) { .ov, .sheet, #toast { transition: none; } .stars span.on { animation: none; } }
+  .note { font-size: 12.5px; color: #6c7a5f; text-align: left; background: var(--cream-2); border-radius: 12px; padding: 9px 11px; line-height: 1.4; }
+
+  /* telefon obrócony poziomo: prośba o pion */
+  #rotate { position: fixed; inset: 0; display: none; place-items: center; background: var(--bg); color: var(--ink); text-align: center; padding: 24px; z-index: 5; font-weight: 800; font-size: 18px; }
+  #rotate span { display: block; font-size: 48px; margin-bottom: 10px; }
+  @media (orientation: landscape) and (max-height: 520px) { #rotate { display: grid; } }
+  @media (prefers-reduced-motion: reduce) { .ov, .sheet, #toast { transition: none; } .stars span.on, .tool.pulse { animation: none; } }
 </style>
 </head>
 <body>
@@ -117,15 +147,21 @@
 <div id="top">
   <button class="round" id="pauseBtn" aria-label="Pauza">❚❚</button>
   <div class="stats">
-    <div class="stat main"><small id="scoreL">Wynik</small><b id="score">0</b></div>
-    <div class="stat"><small id="bestL">Rekord</small><b id="best">0</b></div>
-    <div class="stat" id="thirdStat"><small id="thirdL">Linie</small><b id="third">0</b></div>
+    <div class="stat main"><small id="scoreL"></small><b id="score">0</b></div>
+    <div class="stat"><small id="bestL"></small><b id="best">0</b></div>
+    <div class="stat" id="thirdStat"><small id="thirdL"></small><b id="third">0</b></div>
   </div>
-  <button class="round" id="hintBtn" aria-label="Podpowiedź">✦<span class="n" id="hintN">3</span></button>
+  <button class="round" id="sndBtn" aria-label="Dźwięk">🔊</button>
   <div id="timebar"><i id="timefill"></i></div>
   <div id="goals"></div>
 </div>
+<div id="bottom">
+  <button class="tool" id="undoBtn"><span class="i">↶</span><span id="undoL"></span></button>
+  <button class="tool hint" id="hintBtn"><span class="i">✦</span><span id="hintL"></span></button>
+  <span class="tools-n" id="toolsN"></span>
+</div>
 <div id="toast" role="status"></div>
+<div id="rotate"><div><span>📱</span><div id="rotateL"></div></div></div>
 
 <!-- menu główne -->
 <div class="ov show" id="menu" aria-hidden="false"><div class="sheet">
@@ -138,7 +174,7 @@
   </div>
   <div class="stack">
     <button class="big" id="play">Graj</button>
-    <button class="btn2" id="newGame" hidden>Nowa gra</button>
+    <button class="btn2" id="newGame" hidden></button>
   </div>
   <div class="modes">
     <button class="mode" data-mode="daily"><b>🌼 <span id="mdDaily">Wyzwanie dnia</span></b><small id="mdDailyS"></small></button>
@@ -146,74 +182,85 @@
     <button class="mode" data-mode="relax"><b>🍃 <span id="mdRelax">Relaks</span></b><small id="mdRelaxS"></small></button>
     <button class="mode" id="toGarden"><b>🌸 <span id="mdGarden">Mój ogród</span></b><small id="mdGardenS"></small></button>
   </div>
+  <div class="week" id="week"></div>
   <div class="rank" id="rank"></div>
   <div><button class="link" id="toSettings">⚙ <span id="settingsL">Ustawienia</span></button></div>
 </div></div>
 
-<!-- pauza -->
+<!-- Poniższe ekrany są w kodzie puste; teksty wstawia gra, gdy je pokazuje. -->
+<div class="ov" id="goalsSheet" aria-hidden="true"><div class="sheet">
+  <div class="eyebrow" id="gsEyebrow"></div>
+  <h2 id="gsT"></h2>
+  <p id="gsP"></p>
+  <div class="glist" id="gsList"></div>
+  <button class="big" id="gsGo"></button>
+</div></div>
+
 <div class="ov" id="pause" aria-hidden="true"><div class="sheet">
   <div class="eyebrow" id="pauseEyebrow"></div>
-  <h2 id="pauseT">Pauza</h2>
-  <p id="pauseP">Gra jest zapisana. Możesz wrócić do niej później.</p>
+  <h2 id="pauseT"></h2>
+  <p id="pauseP"></p>
   <div class="stack">
-    <button class="big" id="resume">Wznów</button>
-    <div class="pair"><button class="btn2" id="retry">↻ Od nowa</button><button class="btn2" id="home">⌂ Menu</button></div>
-    <button class="toggle" id="sndT"><span id="sndL">Dźwięk</span><span id="sndV">wł.</span></button>
-    <button class="toggle" id="vibT"><span id="vibL">Wibracje</span><span id="vibV">wł.</span></button>
+    <button class="big" id="resume"></button>
+    <div class="pair"><button class="btn2" id="retry"></button><button class="btn2" id="home"></button></div>
+    <button class="toggle" id="sndT"><span id="sndL"></span><span id="sndV"></span></button>
+    <button class="toggle" id="vibT"><span id="vibL"></span><span id="vibV"></span></button>
   </div>
 </div></div>
 
-<!-- potwierdzenie -->
 <div class="ov" id="confirm" aria-hidden="true"><div class="sheet">
   <h2 id="confT"></h2>
   <p id="confP"></p>
-  <div class="pair"><button class="btn2" id="confNo">Anuluj</button><button class="big" id="confYes" style="padding:12px 10px">Tak</button></div>
+  <div class="pair"><button class="btn2" id="confNo"></button><button class="big" id="confYes" style="padding:12px 10px"></button></div>
 </div></div>
 
-<!-- koniec rundy -->
 <div class="ov" id="over" aria-hidden="true"><div class="sheet">
   <div class="eyebrow" id="overEyebrow"></div>
-  <h2 id="overT">Brak miejsca!</h2>
-  <div class="num" id="final">0</div>
+  <h2 id="overT"></h2>
+  <div class="num" id="final"></div>
   <div class="stars" id="overStars"><span>★</span><span>★</span><span>★</span></div>
   <div class="chips">
-    <div class="chip"><small id="oLinesL">Linie</small><b id="oLines">0</b></div>
-    <div class="chip"><small id="oComboL">Seria</small><b id="oCombo">0</b></div>
-    <div class="chip"><small id="oBestL">Rekord</small><b id="oBest">0</b></div>
+    <div class="chip"><small id="oLinesL"></small><b id="oLines"></b></div>
+    <div class="chip"><small id="oComboL"></small><b id="oCombo"></b></div>
+    <div class="chip"><small id="oBestL"></small><b id="oBest"></b></div>
   </div>
   <div class="glist" id="oGoals"></div>
-  <div><span class="seeds" id="oSeeds">+0 🌱</span></div>
+  <div><span class="seeds" id="oSeeds"></span></div>
+  <div class="week" id="oWeek"></div>
   <div class="rank" id="overRank"></div>
   <div class="stack" style="margin-top:14px">
-    <button class="big" id="again">Jeszcze raz</button>
-    <div class="pair"><button class="btn2" id="overGarden">🌸 Mój ogród</button><button class="btn2" id="toMenu">⌂ Menu</button></div>
+    <button class="big" id="again"></button>
+    <div class="pair"><button class="btn2" id="overGarden"></button><button class="btn2" id="toMenu"></button></div>
   </div>
 </div></div>
 
-<!-- mój ogród: motywy za nasiona -->
 <div class="ov" id="garden" aria-hidden="true"><div class="sheet">
-  <div class="eyebrow" id="gardenEyebrow">Mój ogród</div>
-  <h2 id="gardenT">Nowe rabaty</h2>
-  <p id="gardenP">Za nasiona z rund odblokowujesz nowe kwiaty i wygląd ogrodu.</p>
-  <span class="seeds" id="gSeeds">0 🌱</span>
+  <div class="eyebrow" id="gardenEyebrow"></div>
+  <h2 id="gardenT"></h2>
+  <p id="gardenP"></p>
+  <span class="seeds" id="gSeeds"></span>
+  <h3 id="decorH"></h3>
+  <div class="decors" id="decors"></div>
+  <h3 id="themesH"></h3>
   <div class="themes" id="themes"></div>
-  <button class="btn2" id="gardenBack">← <span id="backL">Wróć</span></button>
+  <button class="btn2" id="gardenBack"></button>
 </div></div>
 
-<!-- ustawienia -->
 <div class="ov" id="settings" aria-hidden="true"><div class="sheet">
-  <h2 id="setT">Ustawienia</h2>
+  <h2 id="setT"></h2>
   <div class="stack" style="margin-top:10px">
-    <button class="toggle" id="sndT2"><span id="sndL2">Dźwięk</span><span id="sndV2">wł.</span></button>
-    <button class="toggle" id="vibT2"><span id="vibL2">Wibracje</span><span id="vibV2">wł.</span></button>
-    <button class="btn2" id="tutAgain">Pokaż samouczek</button>
-    <button class="big" id="setBack">OK</button>
+    <button class="toggle" id="sndT2"><span id="sndL2"></span><span id="sndV2"></span></button>
+    <button class="toggle" id="vibT2"><span id="vibL2"></span><span id="vibV2"></span></button>
+    <button class="btn2" id="install"></button>
+    <button class="btn2" id="tutAgain"></button>
+    <div class="note" id="privacyNote"></div>
+    <button class="big" id="setBack"></button>
   </div>
 </div></div>
 
 <script>
 'use strict';
-const N = 8, HINTS = 3, TIMED_SECS = 120;
+const N = 8, TOOLS = 3, TIMED_SECS = 120, UNDO_DEPTH = 3;
 // język: polski dla telefonów ustawionych na polski, dla wszystkich innych angielski
 const LANG = (navigator.languages && navigator.languages[0] || navigator.language || 'en').toLowerCase().startsWith('pl') ? 'pl' : 'en';
 const tr = (pl, en) => LANG === 'pl' ? pl : en;
@@ -229,6 +276,7 @@ const store = {
 let best = store.get('ob_best', 0), bestTimed = store.get('ob_best_timed', 0), muted = store.get('ob_muted', false), vibe = store.get('ob_vibe', true);
 let lines = store.get('ob_lines', 0), streak = store.get('ob_streak', { last: '', n: 0 }), seeds = store.get('ob_seeds', 0);
 let owned = store.get('ob_themes', ['meadow']), themeId = store.get('ob_theme', 'meadow'), tutDone = store.get('ob_tut', false);
+let decorOwned = store.get('ob_decor', []), decorOn = store.get('ob_decor_on', []);
 
 // --- tryby gry ---
 const MODES = {
@@ -238,7 +286,7 @@ const MODES = {
   relax: { name: tr('Relaks', 'Relax') },
 };
 
-// generator liczb z zapisywanym stanem (wyzwanie dnia da się wznowić w tym samym miejscu)
+// generator liczb z zapisywanym stanem (wyzwanie dnia da się wznowić i cofnąć w tym samym miejscu)
 function makeRng(seed) { const o = { s: seed >>> 0 }; o.next = () => { o.s = (o.s * 1664525 + 1013904223) >>> 0; return o.s / 4294967296; }; return o; }
 let rs = null;
 const rand = () => rs ? rs.next() : Math.random();
@@ -247,6 +295,8 @@ const daySeed = () => { const d = new Date(); return d.getFullYear() * 10000 + (
 const dailyBest = () => store.get('ob_daily_' + dayKey(), 0);
 function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return dayKey(d); }
 const liveStreak = () => streak.last === dayKey() || streak.last === yesterdayKey() ? streak.n : 0;
+// tydzień zaczyna się w poniedziałek
+function weekKey() { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return dayKey(d); }
 
 // rangi ogrodnika za łączną liczbę zebranych rzędów i kolumn
 const RANKS = [[0, tr('Nowicjusz', 'Beginner')], [25, tr('Sadzonka', 'Seedling')], [75, tr('Pączek', 'Bud')], [150, tr('Kwiatek', 'Blossom')],
@@ -260,6 +310,44 @@ function rankHtml() {
     <div class="s">${next ? tr(`zebrane linie: ${lines} · do rangi „${next[1]}” brakuje ${next[0] - lines}`, `lines cleared: ${lines} · ${next[0] - lines} more to “${next[1]}”`)
       : tr(`zebrane linie: ${lines} · najwyższa ranga!`, `lines cleared: ${lines} · top rank!`)}</div>
     <div class="bar"><i style="width:${pct}%"></i></div>`;
+}
+
+// --- wyzwania tygodnia: trzy cele na cały tydzień, bez wymuszania codziennego grania ---
+const WEEK_TYPES = {
+  rounds: { n: 10, text: n => tr(`Zagraj ${n} rund`, `Play ${n} rounds`) },
+  lines: { n: 100, text: n => tr(`Zbierz ${n} linii`, `Clear ${n} lines`) },
+  golds: { n: 12, text: n => tr(`Zbierz ${n} złotych kwiatów`, `Clear ${n} golden flowers`) },
+  stars3: { n: 3, text: n => tr(`${n} rundy z trzema gwiazdkami`, `${n} three-star rounds`) },
+  daily: { n: 3, text: n => tr(`Zagraj wyzwanie dnia ${n} razy`, `Play the daily challenge ${n} times`) },
+};
+const WEEK_REWARD = 40, WEEK_BONUS = 60;
+function loadWeek() {
+  const k = weekKey(), w = store.get('ob_week', null);
+  if (w && w.key === k) return w;
+  const r = makeRng(Number(k.replace(/-/g, '')) * 31).next;
+  const types = Object.keys(WEEK_TYPES).sort(() => r() - .5).slice(0, 3);
+  return { key: k, types, prog: {}, claimed: [], bonus: false, lastDaily: '' };
+}
+let week = loadWeek();
+function weekHtml() {
+  week = loadWeek();
+  const done = week.types.filter(t => (week.prog[t] || 0) >= WEEK_TYPES[t].n).length;
+  return `<div class="t"><span>📅 ${tr('Wyzwania tygodnia', 'Weekly challenges')}</span><span>${done} / 3</span></div>
+    ${week.types.map(t => { const v = Math.min(week.prog[t] || 0, WEEK_TYPES[t].n), ok = v >= WEEK_TYPES[t].n;
+      return `<div class="w${ok ? ' done' : ''}"><span>${ok ? '✓' : '○'} ${WEEK_TYPES[t].text(WEEK_TYPES[t].n)}</span><span>${ok ? '+' + WEEK_REWARD + ' 🌱' : v + ' / ' + WEEK_TYPES[t].n}</span></div>`; }).join('')}
+    <div class="s">${week.bonus ? tr('Bonus za wszystkie trzy odebrany! Nowe wyzwania w poniedziałek.', 'All-three bonus collected! New challenges on Monday.') : tr(`Za wszystkie trzy: dodatkowe +${WEEK_BONUS} 🌱`, `All three: an extra +${WEEK_BONUS} 🌱`)}</div>`;
+}
+// po rundzie: dolicz postęp i odbierz nagrody
+function weekAfterRound(stars) {
+  week = loadWeek();
+  const add = (t, v) => { if (week.types.includes(t)) week.prog[t] = (week.prog[t] || 0) + v; };
+  add('rounds', 1); add('lines', runLines); add('golds', goldsCleared); if (stars === 3) add('stars3', 1);
+  if (mode === 'daily' && week.lastDaily !== dayKey()) { add('daily', 1); week.lastDaily = dayKey(); }
+  let gained = 0; const msgs = [];
+  for (const t of week.types) if ((week.prog[t] || 0) >= WEEK_TYPES[t].n && !week.claimed.includes(t)) { week.claimed.push(t); gained += WEEK_REWARD; msgs.push(WEEK_TYPES[t].text(WEEK_TYPES[t].n)); }
+  if (!week.bonus && week.claimed.length === 3) { week.bonus = true; gained += WEEK_BONUS; }
+  store.set('ob_week', week);
+  return { gained, msgs };
 }
 
 // --- motywy ogrodu (odblokowywane za nasiona) ---
@@ -285,6 +373,15 @@ const THEMES = [
     leaf: ['#1d3d4a', '#25505e'], soil: ['#151b33', '#1c2342', '#20284a'], bg: ['#0b1426', '#0e1a30'] },
 ];
 let theme = THEMES.find(t => t.id === themeId) || THEMES[0];
+// dekoracje: każda zmienia coś widocznego w trakcie gry
+const DECOR = [
+  { id: 'butterflies', ic: '🦋', price: 80, name: tr('Motyle', 'Butterflies'), desc: tr('fruwają nad ogrodem', 'flutter over the garden') },
+  { id: 'frame', ic: '🖼️', price: 120, name: tr('Ozdobna rama', 'Ornate frame'), desc: tr('złota rama z kwiatami wokół grządki', 'a golden flower frame around the bed') },
+  { id: 'lanterns', ic: '🏮', price: 160, name: tr('Lampiony', 'Lanterns'), desc: tr('świecą nad grządką', 'glow above the bed') },
+  { id: 'bees', ic: '🐝', price: 220, name: tr('Pszczoły', 'Bees'), desc: tr('odwiedzają posadzone kwiaty', 'visit the flowers you plant') },
+  { id: 'rainbow', ic: '🌈', price: 300, name: tr('Tęcza', 'Rainbow'), desc: tr('na niebie nad ogrodem', 'in the sky above the garden') },
+];
+const decorActive = id => decorOwned.includes(id) && decorOn.includes(id);
 const NORMAL = 7, GOLD = 7, GOLD_BONUS = 25;
 const flowerOf = col => col === GOLD ? GOLD_FLOWER : theme.flowers[col];
 
@@ -304,6 +401,7 @@ function randShape() {
   for (let i = 0; i < SHAPES.length; i++) { r -= WEIGHTS[i]; if (r < 0) return i; }
   return 0;
 }
+function genPiece() { const s = randShape(), cells = shapeCells(SHAPES[s]); return { s, cells, col: cells.length > 1 && rand() < .07 ? GOLD : Math.floor(rand() * NORMAL), used: false }; }
 
 // --- cele rundy: trzy zadania, każde daje gwiazdkę i nasiona ---
 const GOAL_TYPES = {
@@ -339,7 +437,9 @@ const S = {
   place: () => { tone(196, .1, 'sine', .14); tone(392, .06, 'triangle', .04); },
   bad: () => tone(160, .12, 'square', .04),
   hint: () => { tone(1319, .18, 'sine', .06); tone(1760, .25, 'sine', .05, .08); },
+  undo: () => { tone(660, .12, 'triangle', .06); tone(440, .16, 'triangle', .05, .07); },
   clear: (n, combo) => { const base = 523 * Math.pow(1.06, Math.min(combo, 8)); for (let i = 0; i < 3 + n; i++) tone(base * [1, 1.25, 1.5, 2, 2.5, 3][i % 6], .3, 'triangle', .08, i * .06); },
+  perfect: () => [784, 988, 1175, 1568, 1976].forEach((f, i) => tone(f, .35, 'sine', .07, i * .06)),
   goal: () => [784, 988, 1319].forEach((f, i) => tone(f, .25, 'sine', .07, i * .08)),
   over: () => [392, 330, 262, 196].forEach((f, i) => tone(f, .35, 'triangle', .08, i * .14)),
   record: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .4, 'triangle', .08, i * .09)),
@@ -348,39 +448,51 @@ const S = {
 const buzz = ms => { if (!vibe) return; try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
 
 // --- nakładki: pokazywane i ukrywane razem z aria-hidden ---
-const OVERLAYS = ['menu', 'pause', 'confirm', 'over', 'garden', 'settings'];
+const OVERLAYS = ['menu', 'goalsSheet', 'pause', 'confirm', 'over', 'garden', 'settings'];
 function showOv(id) { for (const o of OVERLAYS) { const el = $(o), on = o === id; el.classList.toggle('show', on); el.setAttribute('aria-hidden', on ? 'false' : 'true'); } hud(); }
-let confirmCb = null;
-function ask(title, text, yes, cb) {
-  $('confT').textContent = title; $('confP').textContent = text; $('confYes').textContent = yes; confirmCb = cb; showOv('confirm');
+let confirmCb = null, confirmNoCb = null;
+function ask(title, text, yes, cb, no = tr('Anuluj', 'Cancel'), noCb = null) {
+  $('confT').textContent = title; $('confP').textContent = text; $('confYes').textContent = yes; $('confNo').textContent = no;
+  confirmCb = cb; confirmNoCb = noCb; showOv('confirm');
 }
 let toastT = 0;
-function toast(msg) {
+function toast(msg, ms = 2000) {
   const el = $('toast'); el.textContent = msg; el.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2000);
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), ms);
 }
 
 // --- stan gry ---
-let mode = 'classic', grid = null, tray = [], score = 0, combo = 0, runLines = 0, maxCombo = 0, goldsCleared = 0, multiClears = 0;
-let hintLeft = HINTS, hint = null, goals = [], timeLeft = 0, state = 'menu', newRecord = false, sel = -1;
+let mode = 'classic', grid = null, tray = [], nextTray = [], score = 0, combo = 0, runLines = 0, maxCombo = 0, goldsCleared = 0, multiClears = 0;
+let tools = TOOLS, hint = null, goals = [], timeLeft = 0, state = 'menu', newRecord = false, sel = -1, undoStack = [];
 let drag = null, pops = [], petals = [], floats = [], planted = [], shakeT = 0, flashT = 0, tutT = 0;
 
 function newGame(m = mode) {
   mode = m;
   rs = mode === 'daily' ? makeRng(daySeed()) : null;
   grid = Array.from({ length: N }, () => Array(N).fill(-1));
-  score = 0; combo = 0; runLines = 0; maxCombo = 0; goldsCleared = 0; multiClears = 0; newRecord = false; sel = -1;
-  hintLeft = mode === 'relax' ? Infinity : HINTS; hint = null; timeLeft = TIMED_SECS;
-  pops = []; petals = []; floats = []; planted = [];
+  score = 0; combo = 0; runLines = 0; maxCombo = 0; goldsCleared = 0; multiClears = 0; newRecord = false; sel = -1; undoStack = [];
+  tools = mode === 'relax' ? Infinity : TOOLS; hint = null; timeLeft = TIMED_SECS;
+  pops = []; petals = []; floats = []; planted = []; nextTray = [];
   goals = makeGoals(mode === 'daily' ? makeRng(daySeed() * 7 + 3).next : Math.random);
-  refill(); state = 'play'; tutT = tutDone ? 0 : performance.now();
-  showOv(null); save();
+  refill();
+  // przed rundą: cele i nagrody
+  state = 'intro';
+  $('gsEyebrow').textContent = MODES[mode].name;
+  $('gsT').textContent = tr('Cele tej rundy', 'This round’s goals');
+  $('gsP').textContent = mode === 'timed' ? tr(`Masz ${TIMED_SECS / 60} minuty. Każda zebrana linia dodaje 2 sekundy.`, `You have ${TIMED_SECS / 60} minutes. Every line adds 2 seconds.`)
+    : mode === 'relax' ? tr('Bez końca gry: gdy zabraknie miejsca, ogród sam się przewietrzy.', 'No game over: when you run out of room, the garden clears some space.')
+    : tr(`Każdy cel to gwiazdka i nasiona. Masz ${TOOLS} narzędzia ogrodnika: cofnięcie ruchu albo podpowiedź.`, `Each goal is a star and seeds. You have ${TOOLS} gardener tools: undo a move or get a hint.`);
+  $('gsList').innerHTML = goals.map(g => `<div class="gl"><span>○ ${GOAL_TYPES[g.type].text(g.n)}</span><span>+${g.reward} 🌱</span></div>`).join('');
+  $('gsGo').textContent = tr('Zaczynamy!', 'Let’s go!');
+  showOv('goalsSheet');
 }
+function beginRound() { state = 'play'; lastT = 0; tutT = tutDone ? 0 : performance.now(); showOv(null); save(); }
+
 // zapis rozpoczętej gry: po odświeżeniu strony albo powrocie do menu można ją dokończyć
 function save() {
-  if (state !== 'play' && state !== 'paused') return;
-  store.set('ob_save', { mode, grid, tray, score, combo, runLines, maxCombo, goldsCleared, multiClears, hintLeft: hintLeft === Infinity ? -1 : hintLeft,
-    goals, timeLeft, newRecord, rng: rs ? rs.s : null, day: dayKey() });
+  if (state !== 'play' && state !== 'paused' && state !== 'stuck') return;
+  store.set('ob_save', { mode, grid, tray, nextTray, score, combo, runLines, maxCombo, goldsCleared, multiClears, tools: tools === Infinity ? -1 : tools,
+    goals, timeLeft, newRecord, rng: rs ? rs.s : null, day: dayKey(), undoStack });
 }
 function loadSave() {
   const s = store.get('ob_save', null);
@@ -391,18 +503,38 @@ function loadSave() {
 function resumeSaved() {
   const s = loadSave(); if (!s) return false;
   ({ mode, grid, tray, score, combo, runLines, maxCombo, goldsCleared, multiClears, goals, timeLeft, newRecord } = s);
-  hintLeft = s.hintLeft === -1 ? Infinity : s.hintLeft;
-  rs = s.rng !== null && s.rng !== undefined ? Object.assign(makeRng(0), { s: s.rng }) : null;
-  if (rs) rs.next = (o => () => { o.s = (o.s * 1664525 + 1013904223) >>> 0; return o.s / 4294967296; })(rs);
+  nextTray = s.nextTray || []; undoStack = s.undoStack || [];
+  tools = s.tools === -1 || s.tools === undefined && s.mode === 'relax' ? Infinity : (s.tools ?? TOOLS);
+  rs = s.rng !== null && s.rng !== undefined ? makeRng(0) : null; if (rs) rs.s = s.rng;
   hint = null; sel = -1; pops = []; petals = []; floats = []; planted = [];
-  state = 'play'; showOv(null);
+  if (!nextTray.length) nextTray = [genPiece(), genPiece(), genPiece()];
+  state = 'play'; lastT = 0; showOv(null);
   if (!tray.some(q => !q.used && canPlaceAnywhere(q.cells))) stuck();
   return true;
 }
 
+// --- cofanie: zdjęcie stanu przed każdym ruchem ---
+function snap() {
+  return JSON.stringify({ grid, tray, nextTray, score, combo, runLines, maxCombo, goldsCleared, multiClears, goals, newRecord, rng: rs ? rs.s : null, lines, best, bestTimed });
+}
+function undo() {
+  if (state !== 'play' && state !== 'stuck') return;
+  if (!undoStack.length) { toast(tr('Nie ma ruchu do cofnięcia.', 'There’s no move to undo.')); return; }
+  if (!tools) { toast(tr('Narzędzia ogrodnika się skończyły w tej rundzie.', 'You’re out of gardener tools this round.')); S.bad(); return; }
+  const s = JSON.parse(undoStack.pop());
+  ({ grid, tray, nextTray, score, combo, runLines, maxCombo, goldsCleared, multiClears, goals, newRecord, lines, best, bestTimed } = s);
+  if (rs && s.rng !== null) rs.s = s.rng;
+  store.set('ob_lines', lines); store.set('ob_best', best); store.set('ob_best_timed', bestTimed);
+  if (tools !== Infinity) tools--;
+  hint = null; sel = -1; pops = []; planted = []; state = 'play'; showOv(null); S.undo(); buzz(15);
+  toast(tr('Ruch cofnięty', 'Move undone') + (tools !== Infinity ? ' · 🧰 ' + tools : ''), 1400);
+  hud(); save();
+}
+
 function hud() {
-  const inGame = state === 'play' || state === 'ending';
-  $('top').style.opacity = inGame ? 1 : 0; $('top').style.visibility = inGame ? 'visible' : 'hidden';
+  const inGame = state === 'play' || state === 'ending' || state === 'stuck';
+  for (const id of ['top', 'bottom']) { $(id).style.opacity = inGame ? 1 : 0; $(id).style.visibility = inGame ? 'visible' : 'hidden'; }
+  $('sndBtn').textContent = muted ? '🔇' : '🔊';
   if (!grid) return;
   $('score').textContent = score;
   $('scoreL').textContent = tr('Wynik', 'Score');
@@ -414,22 +546,29 @@ function hud() {
   else { $('thirdL').textContent = tr('Linie', 'Lines'); $('third').textContent = runLines; $('thirdStat').classList.remove('warn'); }
   $('timebar').style.display = mode === 'timed' ? 'block' : 'none';
   $('timefill').style.width = (timeLeft / TIMED_SECS * 100) + '%';
-  $('hintN').textContent = hintLeft === Infinity ? '∞' : hintLeft; $('hintBtn').disabled = !hintLeft || state !== 'play';
-  $('goals').innerHTML = goals.map(g => `<span class="goal${g.done ? ' done' : ''}" title="${GOAL_TYPES[g.type].text(g.n)}">${GOAL_TYPES[g.type].short(g.n)} ${g.done ? '✓' : (g.type === 'combo' ? 'x' : '') + Math.min(goalValue(g), g.n) + '/' + (g.type === 'combo' ? 'x' : '') + g.n}</span>`).join('');
+  const tl = tools === Infinity ? '∞' : tools;
+  $('toolsN').textContent = '🧰 ' + tl; $('toolsN').title = tr('Narzędzia ogrodnika w tej rundzie', 'Gardener tools left this round');
+  $('undoBtn').disabled = !tools || !undoStack.length; $('hintBtn').disabled = !tools || state !== 'play';
+  $('undoBtn').classList.toggle('pulse', state === 'stuck' && !!tools && !!undoStack.length);
+  $('goals').innerHTML = goals.map(g => {
+    const v = Math.min(goalValue(g), g.n), pct = Math.round(v / g.n * 100);
+    return `<span class="goal${g.done ? ' done' : ''}" title="${GOAL_TYPES[g.type].text(g.n)}">${GOAL_TYPES[g.type].short(g.n)} ${g.done ? '✓' : (g.type === 'combo' ? 'x' : '') + v + '/' + (g.type === 'combo' ? 'x' : '') + g.n}<i style="width:${pct}%"></i></span>`;
+  }).join('');
 }
 function days(n) { return n === 1 ? tr('dzień', 'day') : tr('dni', 'days'); }
 function showMenu() {
-  if (state === 'play') { state = 'paused'; save(); }
+  if (state === 'play' || state === 'stuck') { state = 'paused'; save(); }
   state = 'menu';
   const db = dailyBest(), s = liveStreak(), sv = loadSave();
   $('mBest').textContent = best; $('mSeeds').textContent = seeds; $('mStreak').textContent = s;
   $('mdDailyS').textContent = db ? tr(`dziś: ${db} pkt`, `today: ${db} pts`) : tr('te same klocki dla wszystkich', 'same blocks for everyone');
   $('mdTimedS').textContent = bestTimed ? tr(`rekord: ${bestTimed}`, `best: ${bestTimed}`) : tr(`${TIMED_SECS / 60} minuty, każda linia +2 s`, `${TIMED_SECS / 60} minutes, +2 s per line`);
   $('mdRelaxS').textContent = tr('bez końca gry i bez pośpiechu', 'no game over, no rush');
-  const left = THEMES.filter(t => !owned.includes(t.id)).length;
-  $('mdGardenS').textContent = left ? tr(`${owned.length}/${THEMES.length} rabat · ${seeds} 🌱`, `${owned.length}/${THEMES.length} gardens · ${seeds} 🌱`) : tr('wszystko odblokowane!', 'all unlocked!');
+  const items = THEMES.length + DECOR.length, have = owned.length + decorOwned.length;
+  $('mdGardenS').textContent = have < items ? tr(`${have}/${items} odblokowane · ${seeds} 🌱`, `${have}/${items} unlocked · ${seeds} 🌱`) : tr('wszystko odblokowane!', 'all unlocked!');
   $('play').textContent = sv ? tr('Kontynuuj', 'Continue') + ' · ' + MODES[sv.mode].name.toLowerCase() + ' · ' + sv.score : tr('Graj', 'Play');
   $('newGame').hidden = !sv;
+  $('week').innerHTML = weekHtml();
   $('rank').innerHTML = rankHtml();
   showOv('menu');
 }
@@ -437,7 +576,7 @@ function startMode(m) {
   const sv = loadSave();
   if (sv && sv.score > 0) ask(tr('Zacząć nową grę?', 'Start a new game?'),
     tr(`Rozpoczęta gra (${MODES[sv.mode].name.toLowerCase()}, ${sv.score} pkt) przepadnie.`, `Your game in progress (${MODES[sv.mode].name.toLowerCase()}, ${sv.score} pts) will be lost.`),
-    tr('Nowa gra', 'New game'), () => { store.del('ob_save'); newGame(m); });
+    tr('Nowa gra', 'New game'), () => { store.del('ob_save'); newGame(m); }, tr('Anuluj', 'Cancel'), showMenu);
   else newGame(m);
 }
 
@@ -449,16 +588,14 @@ function canPlaceAnywhere(cells, g = grid) {
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (fits(cells, x, y, g)) return true;
   return false;
 }
+// tacka bierze zestaw z podglądu „następne”, a podgląd losuje kolejny
 function refill() {
-  for (let tries = 0; tries < 30; tries++) {
-    tray = [0, 1, 2].map(() => {
-      const s = randShape(), cells = shapeCells(SHAPES[s]);
-      const col = cells.length > 1 && rand() < .07 ? GOLD : Math.floor(rand() * NORMAL);
-      return { s, cells, col, used: false };
-    });
-    // w wyzwaniu dnia bez losowania od nowa, żeby każdy dostał dokładnie ten sam ciąg klocków
-    if (mode === 'daily' || tray.some(p => canPlaceAnywhere(p.cells))) break;
-  }
+  if (!nextTray.length) nextTray = [genPiece(), genPiece(), genPiece()];
+  tray = nextTray.map(p => ({ ...p, used: false }));
+  nextTray = [genPiece(), genPiece(), genPiece()];
+  // w trybach bez wspólnego ciągu klocków dbamy, żeby nowy zestaw miał choć jeden pasujący klocek
+  if (mode !== 'daily' && !tray.some(p => canPlaceAnywhere(p.cells)))
+    for (let k = 0; k < 40 && !tray.some(p => canPlaceAnywhere(p.cells)); k++) tray[k % 3] = genPiece();
 }
 function fullLines(g) {
   const rows = [], cols = [];
@@ -498,29 +635,30 @@ function bestMove() {
   return top;
 }
 function useHint() {
-  if (!hintLeft || state !== 'play') return;
+  if (state !== 'play') return;
   audio();
+  if (!tools) { toast(tr('Narzędzia ogrodnika się skończyły w tej rundzie.', 'You’re out of gardener tools this round.')); S.bad(); return; }
   const m = bestMove();
   if (!m) { toast(tr('Żaden klocek już się nie zmieści.', 'None of the blocks fit any more.')); return; }
-  if (hintLeft !== Infinity) hintLeft--;
+  if (tools !== Infinity) tools--;
   hint = { ...m, t0: performance.now() }; sel = m.i; S.hint(); hud(); save();
 }
 
 // --- układ ---
-let W, H, DPR, cell, bx, by, trayY, slotW, bgCanvas;
+let W, H, DPR, cell, bx, by, trayY, slotW, bgCanvas, barY;
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2.5);
   W = innerWidth; H = innerHeight;
   cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  const top = 142, trayH = Math.min(140, H * .19), bottom = 16;
+  const top = 146, trayH = Math.min(132, H * .17), bottom = 62;
   cell = Math.floor(Math.min((W - 28) / N, (H - top - trayH - bottom - 24) / N));
   bx = (W - cell * N) / 2; by = top + Math.max(0, (H - top - trayH - bottom - 24 - cell * N) / 2);
-  trayY = by + cell * N + 22 + trayH / 2; slotW = W / 3;
+  trayY = by + cell * N + 20 + trayH / 2; slotW = W / 3; barY = H - 34;
   buildBg();
 }
 addEventListener('resize', resize);
 
-// tło: trawnik w pasy w kolorach motywu, światło słońca (albo księżyca), liście w rogach
+// tło: trawnik w pasy w kolorach motywu, światło słońca (albo księżyca), liście w rogach, tęcza z dekoracji
 function buildBg() {
   bgCanvas = document.createElement('canvas'); bgCanvas.width = W * DPR; bgCanvas.height = H * DPR;
   const b = bgCanvas.getContext('2d'); b.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -529,6 +667,12 @@ function buildBg() {
   const sun = b.createRadialGradient(W * .85, -20, 10, W * .85, -20, H * .7);
   sun.addColorStop(0, theme.glow ? 'rgba(170,200,255,.18)' : 'rgba(255,214,120,.22)'); sun.addColorStop(1, 'rgba(255,214,120,0)');
   b.fillStyle = sun; b.fillRect(0, 0, W, H);
+  if (decorActive('rainbow')) {
+    const cols = ['#ff5a5a', '#ffb347', '#ffe14a', '#7dffa0', '#5ac8ff', '#b48cff'], R = Math.max(W * .62, 230);
+    b.lineWidth = 9; b.globalAlpha = .22;
+    cols.forEach((c, i) => { b.strokeStyle = c; b.beginPath(); b.arc(W / 2, by + cell * 2.2, R - i * 9, Math.PI * 1.08, Math.PI * 1.92); b.stroke(); });
+    b.globalAlpha = 1;
+  }
   const leaf = (x, y, r, a, col) => { b.save(); b.translate(x, y); b.rotate(a); b.fillStyle = col; b.beginPath(); b.ellipse(0, 0, r, r * .42, 0, 0, 7); b.fill();
     b.strokeStyle = 'rgba(0,0,0,.18)'; b.lineWidth = 1.5; b.beginPath(); b.moveTo(-r, 0); b.lineTo(r, 0); b.stroke(); b.restore(); };
   const r = makeRng(7).next;
@@ -538,8 +682,9 @@ function buildBg() {
   vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.32)'); b.fillStyle = vig; b.fillRect(0, 0, W, H);
 }
 const pollen = Array.from({ length: REDUCED ? 8 : 30 }, () => ({ x: Math.random(), y: Math.random(), s: .3 + Math.random() * .7, p: Math.random() * 7 }));
-// spadające płatki w tle (żywy ogród)
 const drift = Array.from({ length: REDUCED ? 3 : 9 }, () => ({ x: Math.random(), y: Math.random(), s: .5 + Math.random() * .5, p: Math.random() * 7, c: Math.floor(Math.random() * 7) }));
+const butterflies = Array.from({ length: 3 }, (_, i) => ({ sp: 22 + i * 9, off: i * 260, y: .2 + i * .27, c: ['#ffb347', '#b48cff', '#5ac8ff'][i], p: i * 2 }));
+const bees = Array.from({ length: 2 }, (_, i) => ({ x: 60 + i * 200, y: 300, tx: 0, ty: 0, t: 0, p: i * 3 }));
 
 // --- rysowanie ---
 function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
@@ -571,6 +716,10 @@ function block(x, y, s, col, alpha = 1, scale = 1, c = ctx, th = theme) {
 }
 function outline(x, y, s, a, col = '#7fe9ff') { ctx.globalAlpha = a; ctx.strokeStyle = col; ctx.lineWidth = 2.5; rr(ctx, x + 3, y + 3, s - 6, s - 6, s * .2); ctx.stroke(); ctx.globalAlpha = 1; }
 function pieceBox(p) { const w = Math.max(...p.cells.map(c => c[0])) + 1, h = Math.max(...p.cells.map(c => c[1])) + 1; return { w, h }; }
+function smallFlower(x, y, r, col) {
+  ctx.fillStyle = col[0]; for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * .55, y + Math.sin(a) * r * .55, r * .45, 0, 7); ctx.fill(); }
+  ctx.fillStyle = col[1]; ctx.beginPath(); ctx.arc(x, y, r * .35, 0, 7); ctx.fill();
+}
 
 let lastT = 0;
 function draw(t) {
@@ -593,19 +742,35 @@ function draw(t) {
     ctx.fillStyle = theme.flowers[d.c][0]; ctx.beginPath(); ctx.ellipse(0, 0, 6 * d.s, 3 * d.s, 0, 0, 7); ctx.fill(); ctx.restore();
   }
   ctx.globalAlpha = 1;
-  if (!grid || state === 'menu') return;
+  if (!grid || state === 'menu') { drawDecorFlyers(t); return; }
   let ox = 0;
   if (shakeT) { const k = (t - shakeT) / 260; if (k > 1) shakeT = 0; else ox = Math.sin(k * 40) * 5 * (1 - k); }
-  // plansza: ziemia przygotowana do sadzenia, w drewnianej ramie
-  ctx.fillStyle = 'rgba(0,0,0,.28)'; rr(ctx, bx - 8 + ox + 3, by - 8 + 6, cell * N + 16, cell * N + 16, 16); ctx.fill();
-  ctx.fillStyle = theme.soil[0]; rr(ctx, bx - 8 + ox, by - 8, cell * N + 16, cell * N + 16, 16); ctx.fill();
+  // plansza: ziemia przygotowana do sadzenia, w drewnianej (albo ozdobnej) ramie
+  const fx = bx - 8 + ox, fy = by - 8, fw = cell * N + 16;
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; rr(ctx, fx + 3, fy + 6, fw, fw, 16); ctx.fill();
+  if (decorActive('frame')) {
+    const g = ctx.createLinearGradient(fx, fy, fx + fw, fy + fw); g.addColorStop(0, '#f6d77a'); g.addColorStop(.5, '#b8860b'); g.addColorStop(1, '#f3c95a');
+    ctx.fillStyle = g; rr(ctx, fx - 5, fy - 5, fw + 10, fw + 10, 20); ctx.fill();
+  }
+  ctx.fillStyle = theme.soil[0]; rr(ctx, fx, fy, fw, fw, 16); ctx.fill();
   ctx.strokeStyle = 'rgba(255,220,170,.12)'; ctx.lineWidth = 1.5; ctx.stroke();
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const X = bx + x * cell + 2 + ox, Y = by + y * cell + 2;
     ctx.fillStyle = (x + y) % 2 ? theme.soil[1] : theme.soil[2]; rr(ctx, X, Y, cell - 4, cell - 4, cell * .18); ctx.fill();
-    // bruzdy w ziemi
     ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(X + cell * .2, Y + cell * .38); ctx.lineTo(X + cell * .7, Y + cell * .38); ctx.moveTo(X + cell * .25, Y + cell * .62); ctx.lineTo(X + cell * .65, Y + cell * .62); ctx.stroke();
+  }
+  if (decorActive('frame')) for (const [cx, cy] of [[fx - 2, fy - 2], [fx + fw + 2, fy - 2], [fx - 2, fy + fw + 2], [fx + fw + 2, fy + fw + 2]]) smallFlower(cx, cy, 11, theme.flowers[0]);
+  if (decorActive('lanterns')) {
+    const y0 = fy - 16; ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(fx, y0); ctx.quadraticCurveTo(fx + fw / 2, y0 + 12, fx + fw, y0); ctx.stroke();
+    for (let i = 0; i < 5; i++) {
+      const k = (i + .5) / 5, lx = fx + fw * k, ly = y0 + 12 * 4 * k * (1 - k) * .5 + 6, fl = .75 + .25 * Math.sin(t / 300 + i * 2);
+      const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, 22); g.addColorStop(0, `rgba(255,190,90,${.45 * fl})`); g.addColorStop(1, 'rgba(255,190,90,0)');
+      ctx.fillStyle = g; ctx.fillRect(lx - 22, ly - 22, 44, 44);
+      ctx.fillStyle = ['#ff6b5a', '#ffb347', '#ff6b8b'][i % 3]; rr(ctx, lx - 5, ly - 6, 10, 12, 4); ctx.fill();
+      ctx.fillStyle = '#6b4a2a'; ctx.fillRect(lx - 3, ly - 8, 6, 2); ctx.fillRect(lx - 3, ly + 6, 6, 2);
+    }
   }
   // podgląd miejsca: zielony gdy pasuje, czerwony gdy nie
   let ghost = null, bad = null;
@@ -644,18 +809,30 @@ function draw(t) {
     if (k >= 1) { pops.splice(i, 1); continue; }
     block(bx + p.x * cell, by + p.y * cell, cell, p.col, 1 - k, 1 + k * .5);
   }
-  // tacka z następnymi klockami
+  // tacka z klockami
   const ts = Math.min(cell * .55, 26);
-  ctx.fillStyle = 'rgba(10,26,16,.42)'; rr(ctx, 10, trayY - 62, W - 20, 124, 20); ctx.fill();
+  ctx.fillStyle = 'rgba(10,26,16,.42)'; rr(ctx, 10, trayY - 58, W - 20, 116, 20); ctx.fill();
   tray.forEach((p, i) => {
     if (p.used || (drag && drag.active && drag.i === i)) return;
     const { w, h } = pieceBox(p), cx = slotW * i + slotW / 2;
     const fit = canPlaceAnywhere(p.cells);
-    if (sel === i) { const a = .5 + .5 * Math.sin(t / 180); ctx.globalAlpha = .22 + a * .25; ctx.fillStyle = hint && hint.i === i ? '#7fe9ff' : '#ffd35a'; rr(ctx, cx - slotW * .42, trayY - 54, slotW * .84, 108, 16); ctx.fill(); ctx.globalAlpha = 1; }
+    if (sel === i) { const a = .5 + .5 * Math.sin(t / 180); ctx.globalAlpha = .22 + a * .25; ctx.fillStyle = hint && hint.i === i ? '#7fe9ff' : '#ffd35a'; rr(ctx, cx - slotW * .42, trayY - 50, slotW * .84, 100, 16); ctx.fill(); ctx.globalAlpha = 1; }
     for (const [x, y] of p.cells) block(cx - w * ts / 2 + x * ts, trayY - h * ts / 2 + y * ts, ts, p.col, fit ? 1 : .35);
   });
+  // podgląd następnego zestawu klocków (prawa strona dolnego paska)
+  if (nextTray.length && (state === 'play' || state === 'stuck')) {
+    const ns = 5, right = W - 14;
+    ctx.fillStyle = 'rgba(10,26,16,.6)'; rr(ctx, right - 104, barY - 22, 104, 44, 12); ctx.fill();
+    ctx.fillStyle = '#b9d3a8'; ctx.font = '800 9px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(tr('NASTĘPNE', 'NEXT'), right - 52, barY - 14); ctx.textBaseline = 'alphabetic';
+    nextTray.forEach((p, i) => {
+      const { w, h } = pieceBox(p), cx = right - 82 + i * 30;
+      for (const [x, y] of p.cells) { ctx.fillStyle = p.col === GOLD ? '#e6b422' : theme.flowers[p.col][0]; rr(ctx, cx - w * ns / 2 + x * ns, barY + 6 - h * ns / 2 + y * ns, ns - 1, ns - 1, 1.5); ctx.fill(); }
+    });
+  }
   // przeciągany klocek (nad palcem, żeby go nie zasłaniał)
   if (drag && drag.active) for (const [x, y] of drag.p.cells) block(drag.x + x * cell, drag.y + y * cell, cell, drag.p.col, .95);
+  drawDecorFlyers(t);
   // płatki
   for (let i = petals.length - 1; i >= 0; i--) {
     const p = petals[i];
@@ -678,10 +855,33 @@ function draw(t) {
   ctx.globalAlpha = 1;
   if (tutT && state === 'play') drawTutorial(t);
 }
+// motyle i pszczoły z dekoracji
+function drawDecorFlyers(t) {
+  if (decorActive('butterflies')) for (const b of butterflies) {
+    const x = ((t / 1000 * b.sp + b.off) % (W + 120)) - 60, y = H * b.y + Math.sin(t / 700 + b.p) * 26, f = Math.abs(Math.sin(t / 90 + b.p));
+    ctx.save(); ctx.translate(x, y); ctx.globalAlpha = .9; ctx.fillStyle = b.c;
+    ctx.beginPath(); ctx.ellipse(-5, -3, 6 * (.3 + f * .7), 7, -.4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(5, -3, 6 * (.3 + f * .7), 7, .4, 0, 7); ctx.fill();
+    ctx.fillStyle = '#2b1d10'; ctx.fillRect(-1, -7, 2, 11); ctx.restore();
+  }
+  if (decorActive('bees') && grid) for (const b of bees) {
+    if (t > b.t) {
+      const cells = []; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (grid[y][x] >= 0) cells.push([x, y]);
+      const c = cells.length ? cells[Math.floor(Math.random() * cells.length)] : [Math.random() * N, Math.random() * N];
+      b.tx = bx + (c[0] + .5) * cell; b.ty = by + (c[1] + .2) * cell; b.t = t + 1800 + Math.random() * 1500;
+    }
+    b.x += (b.tx - b.x) * .03; b.y += (b.ty - b.y) * .03;
+    const x = b.x + Math.sin(t / 120 + b.p) * 3, y = b.y + Math.cos(t / 150 + b.p) * 3;
+    ctx.save(); ctx.translate(x, y); ctx.globalAlpha = .55 + .25 * Math.abs(Math.sin(t / 40)); ctx.fillStyle = '#e8f6ff';
+    ctx.beginPath(); ctx.ellipse(-3, -5, 4, 3, -.5, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(3, -5, 4, 3, .5, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1; ctx.fillStyle = '#ffcf33'; ctx.beginPath(); ctx.ellipse(0, 0, 6, 4.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#2b1d10'; ctx.fillRect(-2, -4, 1.6, 8); ctx.fillRect(1.5, -4, 1.6, 8); ctx.restore();
+  }
+}
 // samouczek przy pierwszej grze: dłoń przeciąga klocek z tacki na grządkę
 let tutMove = null;
 function drawTutorial(t) {
-  if (!tutMove || tray[tutMove.i].used) tutMove = bestMove();
+  if (!tutMove || !tray[tutMove.i] || tray[tutMove.i].used) tutMove = bestMove();
   const m = tutMove; if (!m) return;
   const k = ((t - tutT) / 1800) % 1, e = k < .7 ? k / .7 : 1, ease = e * e * (3 - 2 * e);
   const sx = slotW * m.i + slotW / 2, sy = trayY, { w, h } = pieceBox(tray[m.i]);
@@ -692,9 +892,9 @@ function drawTutorial(t) {
   ctx.strokeStyle = '#1f4a2e'; ctx.lineWidth = 3; ctx.stroke();
   ctx.font = '22px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('👆', x, y + 20);
   ctx.restore();
-  ctx.fillStyle = 'rgba(10,26,16,.85)'; rr(ctx, W / 2 - 150, by - 46, 300, 34, 14); ctx.fill();
+  ctx.fillStyle = 'rgba(10,26,16,.85)'; rr(ctx, W / 2 - 150, by + cell * N / 2 - 17, 300, 34, 14); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.font = '800 14px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(tr('Przeciągnij albo stuknij klocek, potem grządkę', 'Drag or tap a block, then the bed'), W / 2, by - 29);
+  ctx.fillText(tr('Przeciągnij albo stuknij klocek, potem grządkę', 'Drag or tap a block, then the bed'), W / 2, by + cell * N / 2);
   ctx.textBaseline = 'alphabetic';
 }
 
@@ -722,7 +922,7 @@ cv.addEventListener('pointerdown', e => {
   if (state !== 'play') return;
   audio();
   if (tutT) { tutT = 0; tutDone = true; store.set('ob_tut', true); }
-  const inTray = e.clientY > trayY - 70;
+  const inTray = e.clientY > trayY - 62 && e.clientY < trayY + 62;
   if (inTray) {
     const i = Math.min(2, Math.floor(e.clientX / slotW)), p = tray[i];
     if (!p || p.used) return;
@@ -731,7 +931,7 @@ cv.addEventListener('pointerdown', e => {
     return;
   }
   // wybrany wcześniej klocek: stuknięcie w grządkę sadzi go tam (środek klocka pod palcem)
-  if (sel >= 0 && tray[sel] && !tray[sel].used) {
+  if (sel >= 0 && tray[sel] && !tray[sel].used && e.clientY < trayY - 62) {
     const p = tray[sel], { w, h } = pieceBox(p);
     drag = { i: sel, p, x: e.clientX - w * cell / 2, y: e.clientY - h * cell / 2, active: false };
     const g = dropCell(); drag = null;
@@ -756,6 +956,7 @@ cv.addEventListener('pointerup', end);
 cv.addEventListener('pointercancel', () => drag = null);
 
 function place(p, gx, gy) {
+  undoStack.push(snap()); if (undoStack.length > UNDO_DEPTH) undoStack.shift();
   const t0 = performance.now();
   for (const [x, y] of p.cells) { grid[gy + y][gx + x] = p.col; planted.push({ x: gx + x, y: gy + y, t0 }); }
   p.used = true; hint = null; sel = -1; score += p.cells.length; S.place(); buzz(10);
@@ -782,10 +983,12 @@ function place(p, gx, gy) {
     if (golds) { floats.push({ text: tr('Złote kwiaty', 'Golden flowers') + ` +${golds * GOLD_BONUS}`, x: W / 2, y: by + cell * N / 2 - 44, c: '#ffd35a', size: 24, t0: t0 + 60 }); tone(1568, .4, 'sine', .07, .15); }
     const cx = bx + (gx + 1) * cell, cy = by + gy * cell;
     floats.push({ text: '+' + gain, x: cx, y: cy, c: '#ffe27a', size: 30, t0 });
-    if (n > 1) { floats.push({ text: ['', '', tr('Podwójnie!', 'Double!'), tr('Potrójnie!', 'Triple!'), tr('Ogród marzeń!', 'Dream garden!')][Math.min(n, 4)], x: W / 2, y: by + cell * N / 2, c: '#fff', size: 36, t0 }); flashT = t0; }
+    const clean = grid.every(r => r.every(v => v < 0));
+    if (clean || n >= 3) { floats.push({ text: tr('PERFEKCYJNIE!', 'PERFECT!'), x: W / 2, y: by + cell * N / 2 - 6, c: '#fff6c2', size: 40, t0 }); flashT = t0; S.perfect(); }
+    else if (n === 2) { floats.push({ text: tr('Podwójnie!', 'Double!'), x: W / 2, y: by + cell * N / 2, c: '#fff', size: 36, t0 }); flashT = t0; }
     if (combo > 1) floats.push({ text: tr('Seria x', 'Combo x') + combo, x: W / 2, y: by + cell * N / 2 + 42, c: '#ffb347', size: 26, t0: t0 + 120 });
     if (combo >= 3) flashT = t0;
-    if (grid.every(r => r.every(v => v < 0))) { score += 300; floats.push({ text: tr('Czysta grządka! +300', 'Clear garden! +300'), x: W / 2, y: by + cell * 2, c: '#7dffa0', size: 26, t0: t0 + 300 }); flashT = t0; }
+    if (clean) { score += 300; floats.push({ text: tr('Czysta grządka +300', 'Clear garden +300'), x: W / 2, y: by + cell * N / 2 + 84, c: '#7dffa0', size: 24, t0: t0 + 300 }); }
     S.clear(n, combo); buzz(n > 1 ? [20, 30, 20, 30, 30] : [20, 30, 20]);
   } else combo = 0;
   // cele rundy
@@ -803,7 +1006,7 @@ function place(p, gx, gy) {
   hud(); save();
   if (!tray.some(q => !q.used && canPlaceAnywhere(q.cells))) stuck();
 }
-// koniec miejsca: w trybie Relaks ogród się „przewietrza”, w pozostałych kończy się runda
+// koniec miejsca: Relaks przewietrza ogród; w innych trybach można cofnąć ruch narzędziem albo zakończyć rundę
 function stuck() {
   if (mode === 'relax') {
     const order = grid.map((r, y) => [r.filter(v => v >= 0).length, y]).sort((a, b) => b[0] - a[0]).slice(0, 3);
@@ -813,12 +1016,20 @@ function stuck() {
     toast(tr('Ogród się przewietrzył. Graj dalej! 🍃', 'The garden got some fresh air. Keep going! 🍃')); tone(660, .3, 'sine', .06);
     save(); return;
   }
+  if (tools && undoStack.length) {
+    state = 'stuck'; hud(); save();
+    setTimeout(() => ask(tr('Brak miejsca!', 'No more room!'),
+      tr(`Żaden klocek się nie mieści. Możesz cofnąć ostatni ruch za jedno narzędzie ogrodnika (zostało: ${tools}).`, `No block fits. You can undo your last move for one gardener tool (${tools} left).`),
+      '↶ ' + tr('Cofnij ruch', 'Undo move'), undo, tr('Zakończ rundę', 'End round'), () => { state = 'ending'; gameOver(); }), 650);
+    return;
+  }
   state = 'ending'; setTimeout(gameOver, 800);
 }
 function gameOver() {
-  if (state !== 'ending' && state !== 'play') return;
+  if (state !== 'ending' && state !== 'play' && state !== 'stuck') return;
   state = 'over'; store.del('ob_save');
-  const done = goals.filter(g => g.done), earned = done.reduce((a, g) => a + g.reward, 0) + Math.floor(score / 100);
+  const done = goals.filter(g => g.done), wk = weekAfterRound(done.length);
+  const earned = done.reduce((a, g) => a + g.reward, 0) + Math.floor(score / 100) + wk.gained;
   seeds += earned; store.set('ob_seeds', seeds);
   let rec = false;
   $('oBestL').textContent = tr('Rekord', 'Best');
@@ -843,14 +1054,17 @@ function gameOver() {
   rec ? S.record() : S.over(); buzz(rec ? [20, 40, 20, 40, 60] : 80);
   $('final').textContent = score;
   [...$('overStars').children].forEach((s, i) => { s.classList.remove('on'); void s.offsetWidth; if (i < done.length) s.classList.add('on'); });
+  $('oLinesL').textContent = tr('Linie', 'Lines'); $('oComboL').textContent = tr('Seria', 'Combo');
   $('oLines').textContent = runLines; $('oCombo').textContent = maxCombo ? 'x' + maxCombo : '–';
   $('oGoals').innerHTML = goals.map(g => `<div class="gl${g.done ? ' done' : ''}"><span>${g.done ? '✓' : '○'} ${GOAL_TYPES[g.type].text(g.n)}</span><span>${g.done ? '+' + g.reward + ' 🌱' : Math.min(goalValue(g), g.n) + ' / ' + g.n}</span></div>`).join('');
   $('oSeeds').textContent = `+${earned} 🌱 · ${tr('masz', 'you have')} ${seeds}`;
+  $('oWeek').innerHTML = weekHtml();
+  if (wk.msgs.length) setTimeout(() => toast('📅 ' + tr('Wyzwanie tygodnia: ', 'Weekly challenge: ') + wk.msgs.join(', ') + ` · +${wk.gained} 🌱`, 3200), 600);
   $('overRank').innerHTML = rankHtml();
   showOv('over');
 }
 
-// --- mój ogród ---
+// --- mój ogród: dekoracje i rabaty ---
 function themePreview(c, th) {
   const x = c.getContext('2d'), w = c.width, h = c.height, s = h / 2 - 4;
   x.fillStyle = th.bg[0]; x.fillRect(0, 0, w, h); x.fillStyle = th.bg[1]; for (let y = 0; y < h; y += 20) x.fillRect(0, y, w, 10);
@@ -859,6 +1073,12 @@ function themePreview(c, th) {
 }
 function renderGarden() {
   $('gSeeds').textContent = seeds + ' 🌱';
+  $('decors').innerHTML = DECOR.map(d => {
+    const own = decorOwned.includes(d.id), on = decorOn.includes(d.id);
+    const lbl = own ? (on ? tr('Włączone', 'On') : tr('Wyłączone', 'Off')) : d.price + ' 🌱';
+    return `<div class="decor"><span class="ic">${d.ic}</span><span><b>${d.name}</b><small>${d.desc}</small></span>
+      <button data-decor="${d.id}" class="${own ? 'own' : seeds < d.price ? 'no' : ''}">${lbl}</button></div>`;
+  }).join('');
   $('themes').innerHTML = THEMES.map(th => {
     const own = owned.includes(th.id), isSel = th.id === theme.id;
     const lbl = isSel ? tr('Wybrany', 'Selected') : own ? tr('Wybierz', 'Use') : th.price + ' 🌱';
@@ -867,28 +1087,50 @@ function renderGarden() {
   }).join('');
   document.querySelectorAll('canvas[data-th]').forEach(c => themePreview(c, THEMES.find(t => t.id === c.dataset.th)));
 }
+function needSeeds(price) { toast(tr(`Brakuje ${price - seeds} nasion. Zdobywaj je za cele rund, punkty i wyzwania tygodnia.`, `You need ${price - seeds} more seeds. Earn them from round goals, points and weekly challenges.`)); S.bad(); }
 $('themes').addEventListener('click', e => {
   const b = e.target.closest('button[data-buy]'); if (!b) return;
   const th = THEMES.find(t => t.id === b.dataset.buy);
   if (!owned.includes(th.id)) {
-    if (seeds < th.price) { toast(tr(`Brakuje ${th.price - seeds} nasion. Zdobywaj je za cele i punkty w rundach.`, `You need ${th.price - seeds} more seeds. Earn them from round goals and points.`)); S.bad(); return; }
+    if (seeds < th.price) { needSeeds(th.price); return; }
     seeds -= th.price; owned.push(th.id); store.set('ob_seeds', seeds); store.set('ob_themes', owned); S.goal(); buzz(30);
     toast(tr('Nowa rabata: ', 'New garden: ') + th.name + ' 🌸');
   }
   theme = th; store.set('ob_theme', th.id); buildBg(); renderGarden();
 });
+$('decors').addEventListener('click', e => {
+  const b = e.target.closest('button[data-decor]'); if (!b) return;
+  const d = DECOR.find(x => x.id === b.dataset.decor);
+  if (!decorOwned.includes(d.id)) {
+    if (seeds < d.price) { needSeeds(d.price); return; }
+    seeds -= d.price; decorOwned.push(d.id); decorOn.push(d.id); store.set('ob_seeds', seeds); store.set('ob_decor', decorOwned); S.goal(); buzz(30);
+    toast(tr('Nowa dekoracja: ', 'New decoration: ') + d.ic + ' ' + d.name);
+  } else decorOn = decorOn.includes(d.id) ? decorOn.filter(x => x !== d.id) : [...decorOn, d.id];
+  store.set('ob_decor_on', decorOn); buildBg(); renderGarden();
+});
 let gardenBack = 'menu';
 function openGarden(from) { gardenBack = from; renderGarden(); showOv('garden'); }
+
+// --- instalacja na ekranie głównym ---
+let installEvt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+const isInstalled = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches;
+async function installApp() {
+  if (installEvt) { installEvt.prompt(); try { await installEvt.userChoice; } catch (e) {} installEvt = null; return; }
+  toast(tr('W Chrome: menu ⋮ → „Dodaj do ekranu głównego”. Na iPhonie: Udostępnij → „Do ekranu początkowego”.', 'In Chrome: menu ⋮ → “Add to Home screen”. On iPhone: Share → “Add to Home Screen”.'), 4000);
+}
 
 // --- przyciski ---
 function syncToggles() {
   for (const [k, v] of [['sndV', !muted], ['sndV2', !muted], ['vibV', vibe], ['vibV2', vibe]]) { $(k).textContent = v ? tr('wł.', 'on') : tr('wył.', 'off'); $(k).parentElement.classList.toggle('off', !v); }
+  $('sndBtn').textContent = muted ? '🔇' : '🔊';
 }
 function toggleSound() { muted = !muted; store.set('ob_muted', muted); syncToggles(); if (!muted) { audio(); tone(880, .1, 'triangle', .05); } }
 function toggleVibe() { vibe = !vibe; store.set('ob_vibe', vibe); syncToggles(); buzz(30); }
 $('play').onclick = () => { audio(); if (!resumeSaved()) newGame('classic'); };
 $('newGame').onclick = () => startMode('classic');
 document.querySelectorAll('.mode[data-mode]').forEach(b => b.onclick = () => { audio(); startMode(b.dataset.mode); });
+$('gsGo').onclick = beginRound;
 $('toGarden').onclick = () => openGarden('menu');
 $('overGarden').onclick = () => openGarden('over');
 $('gardenBack').onclick = () => gardenBack === 'over' ? showOv('over') : showMenu();
@@ -896,15 +1138,19 @@ $('again').onclick = () => newGame(mode);
 $('toMenu').onclick = showMenu;
 $('pauseBtn').onclick = () => { if (state !== 'play') return; state = 'paused'; save(); $('pauseEyebrow').textContent = MODES[mode].name + ' · ' + score + ' ' + tr('pkt', 'pts'); syncToggles(); showOv('pause'); };
 $('resume').onclick = () => { state = 'play'; lastT = 0; showOv(null); };
-$('retry').onclick = () => ask(tr('Zacząć od nowa?', 'Restart?'), tr(`Obecna runda (${score} pkt) przepadnie.`, `This round (${score} pts) will be lost.`), tr('Od nowa', 'Restart'), () => { store.del('ob_save'); newGame(mode); });
+$('retry').onclick = () => ask(tr('Zacząć od nowa?', 'Restart?'), tr(`Obecna runda (${score} pkt) przepadnie.`, `This round (${score} pts) will be lost.`), tr('Od nowa', 'Restart'),
+  () => { store.del('ob_save'); newGame(mode); }, tr('Anuluj', 'Cancel'), () => showOv('pause'));
 $('home').onclick = showMenu;
-$('confNo').onclick = () => { confirmCb = null; state === 'paused' ? showOv('pause') : showMenu(); };
-$('confYes').onclick = () => { const cb = confirmCb; confirmCb = null; cb && cb(); };
+$('confNo').onclick = () => { const cb = confirmNoCb; confirmCb = confirmNoCb = null; cb ? cb() : showMenu(); };
+$('confYes').onclick = () => { const cb = confirmCb; confirmCb = confirmNoCb = null; cb && cb(); };
 $('hintBtn').onclick = useHint;
+$('undoBtn').onclick = undo;
+$('sndBtn').onclick = toggleSound;
 $('sndT').onclick = $('sndT2').onclick = toggleSound;
 $('vibT').onclick = $('vibT2').onclick = toggleVibe;
-$('toSettings').onclick = () => { syncToggles(); showOv('settings'); };
+$('toSettings').onclick = () => { syncToggles(); $('install').hidden = isInstalled(); showOv('settings'); };
 $('setBack').onclick = showMenu;
+$('install').onclick = installApp;
 $('tutAgain').onclick = () => { tutDone = false; store.set('ob_tut', false); toast(tr('Samouczek pojawi się w następnej grze.', 'The tutorial will show in your next game.')); };
 addEventListener('keydown', e => { if (e.key === 'Escape' && state === 'play') $('pauseBtn').onclick(); });
 
@@ -916,17 +1162,22 @@ function applyTexts() {
   $('newGame').textContent = tr('Nowa gra', 'New game');
   $('mdDaily').textContent = MODES.daily.name; $('mdTimed').textContent = MODES.timed.name; $('mdRelax').textContent = MODES.relax.name; $('mdGarden').textContent = tr('Mój ogród', 'My garden');
   $('settingsL').textContent = tr('Ustawienia', 'Settings');
+  $('undoL').textContent = tr('Cofnij', 'Undo'); $('hintL').textContent = tr('Podpowiedź', 'Hint');
   $('pauseT').textContent = tr('Pauza', 'Paused'); $('pauseP').textContent = tr('Gra jest zapisana. Możesz wrócić do niej później.', 'Your game is saved. You can come back to it later.');
   $('resume').textContent = tr('Wznów', 'Resume'); $('retry').textContent = '↻ ' + tr('Od nowa', 'Restart'); $('home').textContent = '⌂ Menu';
   for (const s of ['', '2']) { $('sndL' + s).textContent = tr('Dźwięk', 'Sound'); $('vibL' + s).textContent = tr('Wibracje', 'Vibration'); }
-  $('confNo').textContent = tr('Anuluj', 'Cancel');
-  $('oLinesL').textContent = tr('Linie', 'Lines'); $('oComboL').textContent = tr('Seria', 'Combo');
   $('again').textContent = tr('Jeszcze raz', 'Play again'); $('overGarden').textContent = '🌸 ' + tr('Mój ogród', 'My garden'); $('toMenu').textContent = '⌂ Menu';
-  $('gardenEyebrow').textContent = tr('Mój ogród', 'My garden'); $('gardenT').textContent = tr('Nowe rabaty', 'New gardens');
-  $('gardenP').textContent = tr('Za nasiona z rund odblokowujesz nowe kwiaty i wygląd ogrodu.', 'Spend seeds from your rounds to unlock new flowers and garden looks.');
-  $('backL').textContent = tr('Wróć', 'Back');
+  $('gardenEyebrow').textContent = tr('Mój ogród', 'My garden'); $('gardenT').textContent = tr('Rozbuduj ogród', 'Grow your garden');
+  $('gardenP').textContent = tr('Za nasiona z rund kupujesz dekoracje i nowe rabaty. Wszystko widać potem w trakcie gry.', 'Spend seeds from your rounds on decorations and new gardens. You’ll see them while you play.');
+  $('decorH').textContent = tr('Dekoracje', 'Decorations'); $('themesH').textContent = tr('Rabaty', 'Gardens');
+  $('gardenBack').textContent = '← ' + tr('Wróć', 'Back');
   $('setT').textContent = tr('Ustawienia', 'Settings'); $('tutAgain').textContent = tr('Pokaż samouczek', 'Show tutorial');
-  $('pauseBtn').setAttribute('aria-label', tr('Pauza', 'Pause')); $('hintBtn').setAttribute('aria-label', tr('Podpowiedź', 'Hint'));
+  $('install').textContent = '📲 ' + tr('Dodaj do ekranu głównego', 'Add to Home screen');
+  $('privacyNote').innerHTML = tr('Gra działa bez konta i bez internetu. Wyniki i postęp są zapisywane tylko na tym urządzeniu. <a href="privacy.html" target="_blank" rel="noopener">Polityka prywatności</a>',
+    'No account and no internet needed. Scores and progress are stored only on this device. <a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a>');
+  $('setBack').textContent = 'OK';
+  $('rotateL').textContent = tr('Obróć telefon pionowo', 'Turn your phone upright');
+  $('pauseBtn').setAttribute('aria-label', tr('Pauza', 'Pause')); $('sndBtn').setAttribute('aria-label', tr('Dźwięk', 'Sound'));
 }
 applyTexts();
 
