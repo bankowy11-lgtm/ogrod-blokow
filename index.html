@@ -687,17 +687,33 @@ function loadSave() {
   if (s.mode === 'daily' && s.day !== dayKey()) { store.del('ob_save'); return null; }   // wczorajsze wyzwanie przepada
   return s;
 }
+// zapis ze starszej wersji gry może nie mieć nowych pól — uzupełniamy braki, a zepsuty zapis po prostu pomijamy
+const okPiece = q => q && Array.isArray(q.cells) && q.cells.length && typeof q.col === 'number';
+const okGoals = g => Array.isArray(g) && g.length && g.every(x => x && GOAL_TYPES[x.type] && x.n > 0);
+const num = v => typeof v === 'number' && isFinite(v) ? v : 0;
 function resumeSaved() {
   const s = loadSave(); if (!s) return false;
-  ({ mode, grid, tray, score, combo, runLines, maxCombo, goldsCleared, multiClears, goals, timeLeft, newRecord } = s);
-  nextTray = s.nextTray || []; undoStack = s.undoStack || []; colorCleared = s.colorCleared || Array(NORMAL).fill(0);
-  tools = s.tools === -1 || s.tools === undefined && s.mode === 'relax' ? Infinity : (s.tools ?? TOOLS);
-  rs = s.rng !== null && s.rng !== undefined ? makeRng(0) : null; if (rs) rs.s = s.rng;
-  hint = null; sel = -1; pops = []; petals = []; floats = []; planted = [];
-  if (!nextTray.length) nextTray = [genPiece(), genPiece(), genPiece()];
-  state = 'play'; lastT = 0; showOv(null);
-  if (!tray.some(q => !q.used && canPlaceAnywhere(q.cells))) stuck();
-  return true;
+  try {
+    if (!MODES[s.mode] || !Array.isArray(s.grid) || s.grid.length !== N || !s.grid.every(r => Array.isArray(r) && r.length === N)
+      || !Array.isArray(s.tray) || s.tray.length !== 3 || !s.tray.every(okPiece)) throw new Error('stary zapis');
+    mode = s.mode; grid = s.grid; tray = s.tray;
+    score = num(s.score); combo = num(s.combo); runLines = num(s.runLines); maxCombo = num(s.maxCombo);
+    goldsCleared = num(s.goldsCleared); multiClears = num(s.multiClears); newRecord = !!s.newRecord;
+    timeLeft = mode === 'timed' ? (num(s.timeLeft) || TIMED_SECS) : num(s.timeLeft);
+    goals = okGoals(s.goals) ? s.goals : makeGoals(Math.random);
+    nextTray = Array.isArray(s.nextTray) && s.nextTray.length === 3 && s.nextTray.every(okPiece) ? s.nextTray : [];
+    undoStack = Array.isArray(s.undoStack) ? s.undoStack.filter(x => typeof x === 'string') : [];
+    colorCleared = Array.isArray(s.colorCleared) && s.colorCleared.length === NORMAL ? s.colorCleared : Array(NORMAL).fill(0);
+    tools = s.tools === -1 || s.tools === undefined && s.mode === 'relax' ? Infinity : (typeof s.tools === 'number' ? s.tools : TOOLS);
+    rs = s.rng !== null && s.rng !== undefined ? makeRng(0) : null; if (rs) rs.s = s.rng;
+    hint = null; sel = -1; pops = []; petals = []; floats = []; planted = [];
+    if (!nextTray.length) nextTray = [genPiece(), genPiece(), genPiece()];
+    state = 'play'; lastT = 0; showOv(null);
+    if (!tray.some(q => !q.used && canPlaceAnywhere(q.cells))) stuck();
+    return true;
+  } catch (e) {
+    store.del('ob_save'); state = 'menu'; return false;
+  }
 }
 
 // --- cofanie: zdjęcie stanu przed każdym ruchem ---
@@ -708,9 +724,15 @@ function undo() {
   if (state !== 'play' && state !== 'stuck') return;
   if (!undoStack.length) { toast(tr('Nie ma ruchu do cofnięcia.', 'There’s no move to undo.')); return; }
   if (!tools) { toast(tr('Narzędzia ogrodnika się skończyły w tej rundzie.', 'You’re out of gardener tools this round.')); S.bad(); return; }
-  const s = JSON.parse(undoStack.pop());
-  ({ grid, tray, nextTray, score, combo, runLines, maxCombo, goldsCleared, multiClears, colorCleared, goals, newRecord, lines, best, bestTimed } = s);
-  if (rs && s.rng !== null) rs.s = s.rng;
+  let s; try { s = JSON.parse(undoStack.pop()); } catch (e) { s = null; }
+  if (!s || !Array.isArray(s.grid) || !Array.isArray(s.tray) || !s.tray.every(okPiece)) { undoStack = []; toast(tr('Nie ma ruchu do cofnięcia.', 'There’s no move to undo.')); hud(); return; }
+  grid = s.grid; tray = s.tray; newRecord = !!s.newRecord;
+  score = num(s.score); combo = num(s.combo); runLines = num(s.runLines); maxCombo = num(s.maxCombo); goldsCleared = num(s.goldsCleared); multiClears = num(s.multiClears);
+  if (typeof s.lines === 'number') lines = s.lines; if (typeof s.best === 'number') best = s.best; if (typeof s.bestTimed === 'number') bestTimed = s.bestTimed;
+  if (Array.isArray(s.nextTray) && s.nextTray.length) nextTray = s.nextTray;
+  if (Array.isArray(s.colorCleared)) colorCleared = s.colorCleared;
+  if (okGoals(s.goals)) goals = s.goals;
+  if (rs && s.rng !== null && s.rng !== undefined) rs.s = s.rng;
   store.set('ob_lines', lines); store.set('ob_best', best); store.set('ob_best_timed', bestTimed);
   if (tools !== Infinity) tools--;
   hint = null; sel = -1; pops = []; planted = []; state = 'play'; showOv(null); S.undo(); buzz(15);
